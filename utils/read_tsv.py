@@ -1,11 +1,16 @@
 from datetime import datetime
 from .dicts import gender_dict,province_dict,country_dict
 from .dicts import meta_data_header_to_english
+import glob
+import os
 import subprocess
 
 soundbites_filename = '../soundbites_utf8.csv'
 meta_data_filename ='../landsdb-dialectdb.tsv'
 transcriptions_filename = '../landsdb-dialectdb_transcriptions.tsv'
+asta_audio = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/audio/'
+asta_wav = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/wav/'
+downloaded_mp3_dir = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/extra_mp3/'
 
 def read_meta_data():
 	# preprocessed meta data by Eric, matched with audio files
@@ -131,17 +136,16 @@ def meta_to_soundbite(meta, soundbites_dict = None):
 	if record_id in soundbites_dict.keys(): return soundbites_dict[record_id]
 	return {}
 
-def fuzzy_match_meta_soundbites(meta, soundbites_list = None):
-	# probably not needed because record id of meta data maps to soundbites data
-	if not soundbites_list: soundbites_list, _ = make_soundbites_list_dict()
-	matches = []
-	for line in soundbites_list:
-		if meta['duration_str'] == line['tijd']: matches.append(line)
-	return matches
+def load_soundbites_to_audio_filenames():
+	t = open('../soundbites_id_to_audiofilenames').read().split('\n')
+	t = [x.split('\t') for x in t if x]
+	return t
 	
-def soundbites_to_audio_filenames(soundbites_list = None, save = False):
+def _soundbites_to_audio_filenames(soundbites_list = None, save = False):
 	'''link a soundbites line to the audio filename via the meertens url
 	link that audio filename to the converted wav audio filename
+	only use this function if the file ../soundbites_id_to_audiofilenames
+	does not exists, uses curl requests to audio filenames -> time consuming
 	'''
 	if not soundbites_list: soundbites_list, _ = make_soundbites_list_dict()
 	mp3_wav = load_mp3_wav_fn()
@@ -163,6 +167,59 @@ def soundbites_to_audio_filenames(soundbites_list = None, save = False):
 		with open('../soundbites_id_to_audiofilenames','w') as fout:
 			fout.write('\n'.join(t))
 	return output
+
+def _match_start_number_mp3_file(filename,fn):
+	number = filename.split('/')[-1][:2]
+	for f in fn:
+		name = f.split('/')[-1]
+		if number == name[:2]: 
+			wav = mp3_to_wav(f)
+			return filename,f,wav,fn 
+	return False, False, False,False
+
+def _fuzzy_match_not_found_mp3_file(filename):
+	folder = asta_audio + '/'.join(filename.split('/')[:-1]) + '/'
+	fn = glob.glob(folder + '*.mp3')
+	for f in fn:
+		fm = f.replace(asta_audio,'').replace("'",'_')
+		fm = fm.lower().replace(' ','_').replace('.aif','')
+		sfolder = '/'.join(fm.split('/')[:-1]) + '/'
+		name = fm.split('/')[-1].replace('-','_')
+		fm = folder + name
+		if filename in fm: 
+			wav = mp3_to_wav(f)
+			return filename,f, wav,fn
+	ok, f1, wav1, fn1 = _match_start_number_mp3_file(filename,fn)
+	if ok: return filename,f1,wav1,fn1
+	print('---')
+	for f in fn:
+		fm = f.replace(asta_audio,'')
+		fm = fm.lower().replace(' ','_').replace('.aif','')
+		sfolder = '/'.join(fm.split('/')[:-1]) + '/'
+		name = fm.split('/')[-1].replace('-','_')
+		fm = sfolder + name
+		print('fi:',[filename],'\nf :',[f],'\nfm:',[fm], filename in fm)
+	return filename,False,False,fn
+
+def download_mp3_from_url(url, goal_dir = downloaded_mp3_dir):
+	goal_name = goal_dir + url.split('audio/soundbites/')[-1].replace('/','__')
+	name = url.split('/')[-1]
+	os.system('wget ' + url)
+	os.system('mv '+name+' '+goal_name)
+
+
+def _update_soundbites_to_audio_filenames():
+	''' some audio filenames were missed because of mismatches between
+	url name and name in /vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/audio
+	'''
+	t = load_soundbites_to_audio_filenames()
+	not_found = [x for x in t if not x[3] or not x[4]] 
+	matches = []
+	for line in not_found:
+		m = _fuzzy_match_not_found_mp3_file(line[1])
+		matches.append([m[:-1],line[0]])
+		if not m[2]: download_mp3_from_url(line[0])
+	return t, not_found,matches
 
 def url_to_original_audio_url_filename(url):
 	'''retrieve audiofilename based on url.'''
