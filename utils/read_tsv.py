@@ -1,9 +1,10 @@
 from datetime import datetime
 from .dicts import gender_dict,province_dict,country_dict
-from .dicts import meta_data_header_to_english
+from .dicts import meta_data_header_to_english, recording_type_dict
 import glob
 import os
 import subprocess
+from lxml import etree
 
 soundbites_filename = '../soundbites_utf8.csv'
 meta_data_filename ='../landsdb-dialectdb.tsv'
@@ -11,9 +12,12 @@ transcriptions_filename = '../landsdb-dialectdb_transcriptions.tsv'
 asta_audio = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/audio/'
 asta_wav = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/wav/'
 downloaded_mp3_dir = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/extra_mp3/'
+ocr_dir = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/transcriptions/ocr_xml/'
 
 def read_meta_data():
-	# preprocessed meta data by Eric, matched with audio files
+	'''
+	preprocessed meta data by Eric, matched with audio files
+	'''
 	f = meta_data_filename
 	t = [x.split('\t') for x in open(f).read().split('\n')]
 	header = t[0]
@@ -21,21 +25,23 @@ def read_meta_data():
 	return header,data
 
 def handle_meta_data():
-	# preprocessed meta data by Eric, matched with audio files
-	# creates a dictionary per record of meta data
+	'''
+	preprocessed meta data by Eric, matched with audio files
+	creates a dictionary per record of meta data
+	'''
 	header, data = read_meta_data()
 	output = []
 	_ , soundbites_dict = make_soundbites_list_dict()
 	for line in data:
-		if not len(line) > 1: 
-			print('line not long enough:',line,len(line))
-			continue
+		if not len(line) > 1: continue
 		output.append(meta_data_line_to_dict(line, soundbites_dict))
 	return output
 		
 		
 def meta_data_line_to_dict(line, soundbites_dict = None):
-	# create a dictionary for a record
+	'''
+	create a dictionary for a record
+	'''
 	if not soundbites_dict: _, soundbites_dict = make_soundbites_list_dict()
 	o = {}
 	mp3_wav = load_mp3_wav_fn()
@@ -62,6 +68,10 @@ def meta_data_line_to_dict(line, soundbites_dict = None):
 	return o
 
 def add_soundbites_info(record_id, line_dict, soundbites_dict):
+	''' 
+	add the metadata in the soundbites file to the meta_data from 
+	the landsdb
+	'''
 	info = soundbites_dict[record_id]
 	line_dict['province'] = province_dict[info['provincie']]
 	line_dict['country'] = country_dict[info['land']]
@@ -70,18 +80,27 @@ def add_soundbites_info(record_id, line_dict, soundbites_dict):
 
 
 def recording_type2tags(rt):
+	''' 
+	transelate recording type into English tags.
+	'''
 	if rt in recording_type_dict.keys(): return recording_type_dict[rt].split(',')
 	if rt == '': return ''
 	print('this recording type is not in the dict:',[rt],'setting to none')
 	return ''
 
 def date2datetime(str_date):
+	'''
+	map str date to datetime object
+	'''
 	if not str_date or str_date == 'onbekend': return ''
 	if str_date.endswith('-00-00'): str_date = str_date.replace('00-00','01-01')
 	if str_date.endswith('-00'): str_date = str_date.replace('-00','-01')
 	return datetime.strptime(str_date,'%Y-%m-%d')
 
 def clock2seconds(clock):
+	'''
+	map str with format 00:01:23 to 83 an integer representing duration in sec
+	'''
 	clock = clock.split(':')
 	if len(clock) != 3:
 		print(clock,'unexpected format for a duration, setting to none')
@@ -92,11 +111,17 @@ def clock2seconds(clock):
 
 
 def load_mp3_wav_fn():
+	'''
+	load the text file that maps mp3 filename to wav filenames
+	'''
 	f = '../mp3_wav_filenames'
 	return [x.split('\t') for x in open(f).read().split('\n')]
 
 
 def mp3_to_wav(mp3_filename, mp3_wav_file = None, return_mp3_filename= False):
+	'''
+	map a given mp3 filename to a wav filename based on the mp3_wav_filenames
+	'''
 	if not mp3_wav_file: mp3_wav_file = load_mp3_wav_fn()
 	for line in mp3_wav_file:
 		mp3, wav = line
@@ -108,6 +133,9 @@ def mp3_to_wav(mp3_filename, mp3_wav_file = None, return_mp3_filename= False):
 	
 
 def read_soundbites():
+	'''
+	read the metadata soundbites file
+	'''
 	f = soundbites_filename
 	t = [x.split('","') for x in open(f).read().split('\n') if x] 
 	header = [x.strip('"') for x in t[0]]
@@ -116,6 +144,10 @@ def read_soundbites():
 	return header, data
 
 def make_soundbites_list_dict():
+	'''
+	make a list and a dict (mapping a id to a line in the metadata) of 
+	the soundbites metadata file
+	'''
 	header,data = read_soundbites()
 	output = []
 	output_dict = {}
@@ -129,6 +161,9 @@ def make_soundbites_list_dict():
 	return output, output_dict
 
 def meta_to_soundbite(meta, soundbites_dict = None):
+	'''
+	map a metadata record from the landsdb database to the soundbites metadata 
+	'''
 	if not soundbites_dict: 
 		soundbites_list, soundbites_dict = make_soundbites_list_dict()
 	else: soundbites_list = None
@@ -137,6 +172,9 @@ def meta_to_soundbite(meta, soundbites_dict = None):
 	return {}
 
 def load_soundbites_to_audio_filenames():
+	'''
+	loads a file that maps the soundbites id to the corresponding audiofilename
+	'''
 	t = open('../soundbites_id_to_audiofilenames').read().split('\n')
 	t = [x.split('\t') for x in t if x]
 	return t
@@ -169,6 +207,10 @@ def _soundbites_to_audio_filenames(soundbites_list = None, save = False):
 	return output
 
 def _match_start_number_mp3_file(filename,fn):
+	'''
+	match mp3 filename (filename) to a filename from a set of filenames (fn) 
+	that mismatch on spelling, but can match on the number (first 2 characters)
+	'''
 	number = filename.split('/')[-1][:2]
 	for f in fn:
 		name = f.split('/')[-1]
@@ -178,6 +220,10 @@ def _match_start_number_mp3_file(filename,fn):
 	return False, False, False,False
 
 def _fuzzy_match_not_found_mp3_file(filename):
+	'''
+	match an mp3 filename (retrieved from meertens url) to an audio file
+	stored on ponyland, matching audio to soundbites metadata	
+	'''
 	folder = asta_audio + '/'.join(filename.split('/')[:-1]) + '/'
 	fn = glob.glob(folder + '*.mp3')
 	for f in fn:
@@ -191,6 +237,7 @@ def _fuzzy_match_not_found_mp3_file(filename):
 			return filename,f, wav,fn
 	ok, f1, wav1, fn1 = _match_start_number_mp3_file(filename,fn)
 	if ok: return filename,f1,wav1,fn1
+	# this is only for debugging should be removed:
 	print('---')
 	for f in fn:
 		fm = f.replace(asta_audio,'')
@@ -202,6 +249,10 @@ def _fuzzy_match_not_found_mp3_file(filename):
 	return filename,False,False,fn
 
 def download_mp3_from_url(url, goal_dir = downloaded_mp3_dir):
+	'''
+	download mp3 from url (meertens) to get missing audio that is listed in
+	soundbites metadata file
+	'''
 	goal_name = goal_dir + url.split('audio/soundbites/')[-1].replace('/','__')
 	name = url.split('/')[-1]
 	os.system('wget ' + url)
@@ -230,6 +281,9 @@ def url_to_original_audio_url_filename(url):
 	return output
 
 def read_transcriptions():
+	'''
+	read transcriptions tsv file, datadumb from the landsdb database
+	'''
 	f = transcriptions_filename
 	t = [x.split('\t') for x in open(f).read().split('\n') if x]
 	header = t[0]
@@ -237,6 +291,9 @@ def read_transcriptions():
 	return header, data
 
 def handle_transcriptions():
+	'''
+	create a list of dictionaries from the transcription file
+	'''
 	header, data = read_transcriptions()
 	output = []
 	for line in data:
@@ -252,4 +309,12 @@ def handle_transcriptions():
 		output.append(line_dict)
 	return output
 
+def ocr_image_filename_to_xml_file(filename):
+	prefix, name = filename.split('.')[0].split('/')[-2:]
+	o = {}
+	o['filename'] = prefix + '_' + name + '.xml'
+	o['path'] = ocr_dir + o['filename']
+	o['isfile'] = os.path.isfile(o['path'])
+	return o
+	
 
