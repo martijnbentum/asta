@@ -1,6 +1,6 @@
 
 #fr refers to french language
-country_dict = {'nl':'Netherlands','be':'Belgium','fr':'Belgium'}
+country_dict = {'nl':'Netherlands','be':'Belgium','fr':'Belgium','de':'Germany'}
 
 #province dict
 t = {'Lb':'Limburg','Ov':'Overijssel','Dr':'Drenthe'}
@@ -12,6 +12,10 @@ t.update({'BeWv':'Belgisch West-Vlaanderen','Ze':'Zeeland'})
 t.update({'NB':'Noord-Brabant','Fr':'Friesland','BeBr':'Vlaams Brabant'})
 t.update({'Fl,Ov':'Flevoland,Overijssel','Fl':'Flevoland','Ut':'Utrecht'})
 t.update({'FrVl':'Friesland,Vlieland','ZH,NH':'Zuid-Holland,Noord-Holland'})
+t.update({'WaBr':'Waals Brabant','Ri':'Noordrijn-Westfalen'})
+t.update({'BeLb, Luik':'Luik,Belgisch Limburg','BeLu':'Luik'})
+t.update({'Be, Luik':'Luik','BeHe':'Henegouwen','Fra':'Hauts-de-France'})
+t.update({'Belb':'Belgisch Limburg','Dui':'Noordrijn-Westfalen'})
 province_dict = t
 
 # meta_data_header_to_english
