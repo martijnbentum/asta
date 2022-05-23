@@ -21,6 +21,13 @@ class Transcriptiontype(models.Model):
 	def __repr__(self):
 		return self.name
 
+class Country(models.Model):
+	'''country name Netherlands / Belgium / Germany'''
+	name = models.CharField(max_length=100,default='')
+
+	def __repr__(self):
+		return self.name
+
 class Area(models.Model):
 	'''location name between city and province.'''
 	name = models.CharField(max_length=100,default='')
@@ -30,17 +37,13 @@ class Area(models.Model):
 
 class Province(models.Model):
 	'''location name for province.'''
+	dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
 	name = models.CharField(max_length=100,default='')
+	country = models.ForeignKey(Country, **dargs)
 
 	def __repr__(self):
 		return self.name
 
-class Country(models.Model):
-	'''country name Netherlands / Belgium'''
-	name = models.CharField(max_length=100,default='')
-
-	def __repr__(self):
-		return self.name
 
 class Sex(models.Model):
 	'''gender of speaker'''
