@@ -439,7 +439,7 @@ def soundbites_to_metadata():
 		line_dict['sex'] = gender_dict[value['geslacht']]
 		if value['geb_jaar'] == '':year = ''
 		else: year= int(value['geb_jaar'])
-		line_dict['date_of_birth'] = year
+		line_dict['year_of_birth'] = year
 		if value['leeftijd'] == '': age = ''
 		else:age = int(value['leeftijd'] )
 		line_dict['age'] = age
@@ -447,4 +447,5 @@ def soundbites_to_metadata():
 		line_dict['recording_type']= recording_type_dict[value['opnameaard']]
 		output.append(line_dict)
 	return output,error
+
 
