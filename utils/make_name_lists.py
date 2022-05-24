@@ -7,13 +7,18 @@ def make_province_list(soundbites_metadata = None, kloeke = None):
 	if not kloeke:
 		kloeke = read_kloeke.handle_kloeke_codes()
 	provinces = []
+	province_to_country = {}
 	for line in soundbites_metadata + kloeke:
+		country = line['country']
 		if ',' in line['province']:
 			for province in line['province'].split(','):
-				if province not in provinces: provinces.append(province)
+				if province not in provinces: 
+					provinces.append(province)
+					province_to_country[province] = country
 		elif line['province'] not in provinces: 
 			provinces.append(line['province'])
-	return provinces
+			province_to_country[line['province']] = country
+	return provinces,province_to_country
 
 def _add_to_city_list(city,city_list):
 	names = [x['name'] for x in city_list]
@@ -61,11 +66,10 @@ def make_city_list_kloeke(kloeke = None):
 		name = d['place']
 		if not '/' in name: 
 			d['name']= name
+			d['alternative_names'] = ''
 			continue
 		d['name']= name.split('/')[0].strip()
-		d['alternative_name'] = name.split('/')[1].strip()
-		if len(name.split('/')) > 2:
-			d['other_alternative_names'] = ' / '.join(name.split('/')[2:])
+		d['alternative_names'] = '/'.join(name.split('/')[1:])
 	return kloeke
 
 def make_kloeke_dict():
@@ -76,6 +80,8 @@ def make_kloeke_dict():
 	return output
 
 def compare_soundbites_cities_with_kloeke(soundbites_metadata=None):
+	if not soundbites_metadata: 
+		soundbites_metadata, _ = read_tsv.soundbites_to_metadata()
 	city_sb = make_city_list_sb(soundbites_metadata)
 	city_kloeke = make_city_list_kloeke()
 	matches,partial_c,partial_k,not_found = [],[],[],[]
@@ -93,4 +99,17 @@ def compare_soundbites_cities_with_kloeke(soundbites_metadata=None):
 	return matches,partial_c,partial_k,not_found
 	
 
+def make_recording_type_list(soundbites_metadata=None):
+	if not soundbites_metadata: 
+		soundbites_metadata, _ = read_tsv.soundbites_to_metadata()
+	rt = list(set([x['recording_type'] for x in soundbites_metadata]))
+	output = []
+	for x in rt:
+		if not x: continue
+		if ',' in x:
+			for item in x.split(','):
+				if not item:continue
+				if item.strip() not in output: output.append(item.strip())
+		elif x.strip() not in output: output.append(x)
+	return output
 
