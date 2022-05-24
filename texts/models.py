@@ -28,13 +28,6 @@ class Country(models.Model):
 	def __repr__(self):
 		return self.name
 
-class Area(models.Model):
-	'''location name between city and province.'''
-	name = models.CharField(max_length=100,default='')
-
-	def __repr__(self):
-		return self.name
-
 class Province(models.Model):
 	'''location name for province.'''
 	dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
@@ -52,31 +45,20 @@ class Sex(models.Model):
 	def __repr__(self):
 		return self.name
 
-class City(models.Model):
+class Location(models.Model):
 	'''city/village where the recording is made.'''
 	dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
 	name = models.CharField(max_length=100,default='')
-	province = models.ForeignKey(Province, **dargs)
-	country = models.ForeignKey(Country, **dargs)
-
-	def __repr__(self):
-		return self.name
-
-class Kloekecode(models.Model):
-	'''code dividing the Netherlands in small sections used for 
-	dialect research
-	'''
-	dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
-	name = models.CharField(max_length= 9,default='')
-	lattitude = models.FloatField(default = None,null=True)
+	alternative_names = models.CharField(max_length=300,default='')
+	kloeke = models.CharField(max_length= 9,default='')
+	latitude = models.FloatField(default = None,null=True)
 	longitude = models.FloatField(default = None,null=True)
 	dialect = models.ForeignKey(Dialect, **dargs)
 	province = models.ForeignKey(Province, **dargs)
 	country = models.ForeignKey(Country, **dargs)
-	city = models.ForeignKey(City, **dargs)
 
 	def __repr__(self):
-		return 'kloeke: ' +self.name + ' | ' + self.dialect
+		return self.name + ' | ' + self.kloeke + ' | ' + self.province.name
 
 class Ocr(models.Model):
 	'''optical charcter recognition information of the transcription.
@@ -94,7 +76,7 @@ class Ocr(models.Model):
 class Asr(models.Model):
 	''' Automatic speech recognition information of the transcription.
 	'''
-	modelname = models.CharField(max_length=300,default='')
+	modelname = models.CharField(max_length=300, default='')
 	directory = models.CharField(max_length=300, default='')
 
 	def __repr__(self):
@@ -108,15 +90,13 @@ class Recording(models.Model):
 	landsdb_id = models.PositiveIntegerField(null=True,blank=True) 
 	record_id = models.PositiveIntegerField(null=True,blank=True) 
 	ocr_transcription_available = models.BooleanField(default = False)
-	province_str = models.CharField(max_length=200,default ='')
-	city_str = models.CharField(max_length = 200, default = '')
-	country = models.ForeignKey(Country, **dargs)
-	kloekecodes= models.ManyToManyField(Kloekecode, blank=True)
+	locations= models.ManyToManyField(Location, blank=True)
+	location_str = models.CharField(max_length=600,default='')
+	area = models.CharField(max_length=100,default='')
 	soundbites_info = models.TextField(default='')
 	mp3_url = models.CharField(max_length=300,default='')
 	wav_filename = models.CharField(max_length=300,default='')
 	original_audio_filename = models.CharField(max_length=300,default='')
-	area = models.ForeignKey(Area, **dargs)
 	recording_date_str = models.CharField(max_length=30, default='')
 	recording_date = models.DateTimeField()
 	duration = models.PositiveIntegerField(null=True,blank=True) 
@@ -127,8 +107,18 @@ class Recording(models.Model):
 	recording_types = models.ManyToManyField(Recordingtype,blank=True)
 	
 	def __repr__(self):
-		m = self.city.name + ' | ' + self.duration
+		m = 'recording: ' + self.city_names +' | ' + self.duration
 		return m
+
+	@property
+	def cities(self):
+		if not hasattr(self,'_cities'):
+			self._cities = [x.city for x in self.locations.all()]
+		return self._cities
+
+	@property
+	def city_names(self):
+		return ', '.join([city.name for city in self.cities])
 
 class Transcriptionset(models.Model):
 	'''
