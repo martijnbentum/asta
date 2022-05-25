@@ -1,5 +1,6 @@
 from . import read_tsv
 from . import read_kloeke
+from . import read_xml
 
 def make_province_list(soundbites_metadata = None, kloeke = None):
 	if not soundbites_metadata: 
@@ -112,4 +113,31 @@ def make_recording_type_list(soundbites_metadata=None):
 				if item.strip() not in output: output.append(item.strip())
 		elif x.strip() not in output: output.append(x)
 	return output
+
+def make_ocr_list(transcriptions= None):
+	if not transcriptions:
+		transcriptions = read_tsv.handle_new_transcription_file()
+
+	names = 'ocr_line_id,transcription,confidence,left_x,right_x'
+	names += ',avg_y'
+	names = names.split(',')
+	xml_filenames = []
+	output = []
+	for line in transcriptions:
+		if 'ocr_line_id' not in line.keys(): continue
+		if line['ocr_filename'] in xml_filenames: continue
+		f = line['ocr_filename']
+		xml_filenames.append(f)
+		for name in names:
+			del line[name]
+		page_width,page_height = read_xml.xml_filename_to_image_width_height(f)
+		line.update( {'page_width':page_width,'page_height':page_height} )
+		try:line['page_id'] = int(line['page_id'])
+		except ValueError:line['page_id'] = None
+		line['record_id'] = int(line['record_id'])
+		output.append(line)
+	return output
+
+		
+	
 
