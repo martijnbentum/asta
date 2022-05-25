@@ -60,18 +60,6 @@ class Location(models.Model):
 	def __repr__(self):
 		return self.name + ' | ' + self.kloeke + ' | ' + self.province.name
 
-class Ocr(models.Model):
-	'''optical charcter recognition information of the transcription.
-	the speech recordings were transcribed on type writer and scanned and ocr
-	'''
-	ocr_filename = models.CharField(max_length=300,default='')
-	image_filename = models.CharField(max_length=300,default='')
-	page_number = models.PositiveIntegerField(null=True,blank=True) 
-
-	def __repr__(self):
-		m = self.ocr_filename + ' | ' + self.image_filename 
-		m += ' | ' + self.page_number
-		return m
 
 class Asr(models.Model):
 	''' Automatic speech recognition information of the transcription.
@@ -92,13 +80,16 @@ class Recording(models.Model):
 	ocr_transcription_available = models.BooleanField(default = False)
 	locations= models.ManyToManyField(Location, blank=True)
 	location_str = models.CharField(max_length=600,default='')
+	country = models.ForeignKey(Country, **dargs)
+	province= models.ForeignKey(Province, **dargs)
 	area = models.CharField(max_length=100,default='')
 	soundbites_info = models.TextField(default='')
 	mp3_url = models.CharField(max_length=300,default='')
 	wav_filename = models.CharField(max_length=300,default='')
 	original_audio_filename = models.CharField(max_length=300,default='')
 	recording_date_str = models.CharField(max_length=30, default='')
-	recording_date = models.DateTimeField()
+	recording_date = models.DateTimeField(null=True,blank=True)
+	duration_str = models.CharField(max_length=10, default='')
 	duration = models.PositiveIntegerField(null=True,blank=True) 
 	sex = models.ForeignKey(Sex, **dargs)
 	year_of_birth = models.PositiveIntegerField(null=True,blank=True) 
@@ -107,18 +98,36 @@ class Recording(models.Model):
 	recording_types = models.ManyToManyField(Recordingtype,blank=True)
 	
 	def __repr__(self):
-		m = 'recording: ' + self.city_names +' | ' + self.duration
+		m = 'recording: ' + self.city_names +' | ' + str(self.duration)
 		return m
 
 	@property
 	def cities(self):
 		if not hasattr(self,'_cities'):
-			self._cities = [x.city for x in self.locations.all()]
+			self._cities = [x.name for x in self.locations.all()]
 		return self._cities
 
 	@property
 	def city_names(self):
-		return ', '.join([city.name for city in self.cities])
+		return ', '.join([city for city in self.cities])
+
+
+class Ocr(models.Model):
+	'''optical charcter recognition information of the transcription.
+	the speech recordings were transcribed on type writer and scanned and ocr
+	'''
+	dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
+	ocr_filename = models.CharField(max_length=300,default='')
+	image_filename = models.CharField(max_length=300,default='')
+	page_number = models.PositiveIntegerField(null=True,blank=True) 
+	page_width = models.PositiveIntegerField(null=True,blank=True)
+	page_height = models.PositiveIntegerField(null=True,blank=True)
+	recording = models.ForeignKey(Recording,**dargs)
+
+	def __repr__(self):
+		m = self.ocr_filename + ' | ' + self.image_filename 
+		m += ' | ' + str(self.page_number)
+		return m
 
 class Transcriptionset(models.Model):
 	'''
@@ -141,6 +150,8 @@ class Transcription(models.Model):
 	dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
 	id_name = models.CharField(max_length=100,default='')
 	text = models.TextField(default='')
+	words_tsv = models.CharField(max_length=500,default='')
+	words_confidence_tsv = models.CharField(max_length=500,default='')
 	confidence = models.FloatField(default=None,null=True)
 	transcription_type = models.ForeignKey(Transcriptiontype, **dargs)
 	start_time = models.FloatField(default = None,null=True)
