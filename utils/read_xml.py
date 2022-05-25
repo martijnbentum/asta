@@ -50,3 +50,49 @@ def extract_transcription_from_xml(filename):
 	return transcription 
 
 
+def xml_filename_to_image_width_height(filename):
+	xml = etree.fromstring(open(filename).read())
+	page = tag_to_element('Page',xml)
+	try: width = int(page.get('imageWidth'))
+	except TypeError: width = None
+	try: height= int(page.get('imageHeigth'))
+	except TypeError: height = None	
+	return width, height
+
+def word_to_conf(word):
+	te = tag_to_element('TextEquiv',word)
+	if te == None: return ''
+	conf = te.get('conf')
+	if conf == None: return ''
+	return conf
+
+def word_to_text(word):
+	te = tag_to_element('TextEquiv',word)
+	if te == None: return ''
+	uc = tag_to_element('Unicode',te)
+	if uc == None: return ''
+	text = uc.text
+	if text == None: return ''
+	return text
+
+def id_to_textline(filename,id_name):
+	xml = etree.fromstring(open(filename).read())
+	for x in xml.iter('{*}TextLine'):
+		if x.get('id') == id_name: return x
+	return None
+
+def textline_id_to_words(filename,id_name):
+	textline = id_to_textline(filename,id_name)
+	if textline == None:return None
+	words = list(textline.iter('{*}Word'))
+	return words
+
+def transcription_line_to_word_conf_lists(line):
+	words = textline_id_to_words(line['ocr_filename'],line['ocr_line_id'])
+	word_texts = [word_to_text(w) for w in words]
+	confs = [word_to_conf(w) for w in words]
+	if word_texts: word_texts = '\t'.join(word_texts)
+	else: word_texts = ''
+	if confs: confs = '\t'.join(confs)
+	else: confs =''
+	return word_texts, confs
