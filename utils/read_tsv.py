@@ -377,6 +377,61 @@ def make_new_transcription_file(save = False):
 	if save: save_list_of_dicts(output,'../ocr_transcription_sentences')
 	return output,not_found
 
+def handle_new_transcription_file():
+	t = open('../ocr_transcription_sentences').read().split('\n')
+	header = t[0].split('\t')
+	data = t[1:]
+	output = []
+	for line in data:
+		d ={}
+		line = line.split('\t')
+		for i, colum_name in enumerate(header):
+			item = line[i]
+			if item == 'None': item = None
+			if colum_name == 'page_id': item = int(item)
+			if colum_name == 'record_id': item = int(item)
+			if colum_name == 'left_x' and item: item = int(item)
+			if colum_name == 'right_x' and item: item = int(item)
+			if colum_name == 'avg_x' and item: item = int(item)
+			if colum_name == 'confidence' and item: item = float(item)
+			d[colum_name] = item
+		output.append(d)
+	return output
+
+def _make_line_id_to_word_conf_list_dict(new_transcriptions = None,save=False):
+	'''create a dictionary mapping line_id to word tsv and conf tsv.'''
+	if new_transcriptions == None: 
+		new_transcriptions = handle_new_transcription_file()
+	d = {}
+	for i,line in enumerate(new_transcriptions):
+		if i % 1000 == 0:print(line,i,len(new_transcriptions))
+		wl,cl = read_xml.transcription_line_to_word_conf_lists(line)
+		
+		d[line['ocr_line_id']] = {'words':wl,'confs':cl}
+	if save:
+		o = []
+		for line_id in d.keys():
+			words = d[lid]['words'].replace('\t','|||')
+			confs = d[lid]['confs'].replace('\t','|||')
+			o.append({'line_id':lid,'words':words,'confs':confs})
+		save_list_of_dicts(o,'../transcription_line_id_to_words')
+	return d
+
+def load_line_id_to_word_conf_list_dict():
+	t = open('../transcription_line_id_to_words').read().split('\n')
+	header = t[0].split('\t')
+	data = t[1:]
+	d = {}
+	for line in data:
+		line = line.split('\t')
+		line_dict = {}
+		for i,item in enumerate(line):
+			if header[i] != 'line_id': item = item.replace('|||','\t')
+			line_dict[header[i]] =item
+		d[line[header.index('line_id')]] = line_dict
+	return d 
+		
+
 def make_record_ids_list_with_transcription():
 	'''create a list of integers of record ids that have an ocr transcription
 	'''
@@ -398,7 +453,7 @@ def _add_wav_mp3_filename_to_soundbite(line_dict):
 		d = _make_soundbites_to_audiofilename_dict(header,line)
 		if int(d['id']) == line_dict['record_id']:
 			line_dict['mp3_url'] = d['mp3_url']
-			line_dict['wav_fileame'] = d['wav_filename']
+			line_dict['wav_filename'] = d['wav_filename']
 			line_dict['original_audio_filename'] = d['original_audio_filename']
 			return True
 	return False
