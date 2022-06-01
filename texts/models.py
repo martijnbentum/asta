@@ -1,4 +1,9 @@
 from django.db import models
+import numpy as np
+from utils.clean_text import clean_simple
+import matplotlib.image as mpimg
+from matplotlib import pyplot as plt
+	
 
 class Dialect(models.Model):
 	'''Grouping for kloekecodes.'''
@@ -101,6 +106,9 @@ class Recording(models.Model):
 		m = 'recording: ' + self.city_names +' | ' + str(self.duration)
 		return m
 
+	def __str__(self):
+		return self.__repr__()
+
 	@property
 	def cities(self):
 		if not hasattr(self,'_cities'):
@@ -111,6 +119,21 @@ class Recording(models.Model):
 	def city_names(self):
 		return ', '.join([city for city in self.cities])
 
+	@property
+	def ocrs(self):
+		if not hasattr(self,'_ocrs'): 
+			self._ocrs = self.ocr_set.all().order_by('page_number')
+		return self._ocrs
+
+	@property
+	def ocr_transcriptions(self):
+		if not self.ocr_transcription_available: return []
+		if not hasattr(self,'_ocr_transcriptions'):
+			self._ocr_transcriptions = []
+			for ocr_page in self.ocrs:
+				self._ocr_transcriptions.extend(ocr_page.transcriptions)
+		return self._ocr_transcriptions
+			
 
 class Ocr(models.Model):
 	'''optical charcter recognition information of the transcription.
@@ -123,11 +146,53 @@ class Ocr(models.Model):
 	page_width = models.PositiveIntegerField(null=True,blank=True)
 	page_height = models.PositiveIntegerField(null=True,blank=True)
 	recording = models.ForeignKey(Recording,**dargs)
+	confidence = models.FloatField(null=True,blank=True)
+	avg_left_x= models.FloatField(null=True,blank=True)
 
 	def __repr__(self):
 		m = self.ocr_filename + ' | ' + self.image_filename 
 		m += ' | ' + str(self.page_number)
 		return m
+
+	def __str__(self):
+		return self.__repr__()
+
+	@property
+	def transcriptions(self):
+		if not hasattr(self,'_transcriptions'):
+			t= self.transcription_set.all()
+			self._transcriptions = list(t.order_by('ocr_avg_y'))
+		return self._transcriptions
+
+	def _set_confidence(self):
+		confidence =[x.confidence for x in self.transcriptions if x.confidence]
+		if confidence: 
+			self.confidence = np.mean(confidence)
+			self.save()
+
+	def _set_avg_left_x(self):
+		leftx = [x.ocr_left_x for x in self.transcriptions if x.ocr_left_x]
+		if leftx: 
+			self.avg_left_x = np.mean(leftx)
+			self.save()
+
+	@property
+	def image(self):
+		path = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/transcriptions/'
+		path += '1001:2_Transcripties_geanonimiseerd/'
+		filename = path + self.image_filename
+		img = mpimg.imread(filename)
+		return img
+
+	def show_page_image(self):
+		img = self.image
+		plt.imshow(img,cmap='gray')
+		plt.tight_layout()
+		frame = plt.gca()
+		frame.axes.get_xaxis().set_visible(False)
+		frame.axes.get_yaxis().set_visible(False)
+		plt.show()
+		
 
 class Transcriptionset(models.Model):
 	'''
@@ -164,10 +229,32 @@ class Transcription(models.Model):
 	recording = models.ForeignKey(Recording, **dargs)
 
 	def __repr__(self):
-		if len(self.text) > 150: t = self.text[:150] + '[...]'
-		else : t = self.text
-		m = t 
-		if self.recording_type:
-			m += ' | ' + self.recording_type.name
+		m = str(self.page_number).ljust(4)
+		if len(self.text_clean) > 150: t = self.text_clean[:150] + '[...]'
+		else : t = self.text_clean
+		m += t 
+		return m
+
+	def __str__(self):
+		return self.__repr__()
+
+	@property
+	def page_number(self):
+		return self.ocr.page_number
+
+	@property
+	def page_confidence(self):
+		return self.ocr.confidence
+
+	@property
+	def city_names(self):
+		return self.recording.city_names
+
+	@property
+	def text_clean(self):
+		if not hasattr(self,'_clean_text_simple'):
+			self._clean_text_simple = clean_simple(self.text).lower()
+		return self._clean_text_simple
+
 
 
