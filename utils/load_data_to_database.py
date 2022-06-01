@@ -183,12 +183,12 @@ def load_transcription(transcriptions=None):
 	for line in transcriptions:
 		try: Transcription.objects.get(id_name = line['ocr_line_id'])
 		except Transcription.DoesNotExist:
-			print('creating transcription:', line['ocr_line_id'])
+			# print('creating transcription:', line['ocr_line_id'])
 			ocr = Ocr.objects.get(ocr_filename=line['ocr_filename'],
 				page_number = line['page_id'])
 			recording = Recording.objects.get(record_id=line['record_id'])
 			tsv_word_info = d[line['ocr_line_id']]
-			Transcription(
+			transcription= Transcription(
 				id_name = line['ocr_line_id'],
 				text = line['transcription'],
 				words_tsv = tsv_word_info['words'],
@@ -201,5 +201,6 @@ def load_transcription(transcriptions=None):
 				ocr_avg_y= line['avg_y'],
 				recording = recording
 			)
+			transcription.save()
 	else: print(line['ocr_line_id'],line['transcription'],'already exists')
 
