@@ -1,6 +1,7 @@
 from collections import Counter
 from matplotlib import pyplot as plt
 import numpy as np
+import os
 from scipy import stats
 from texts.models import Recording,Transcription
 from . import celex
@@ -51,6 +52,17 @@ def province_recording_counts_barplot():
 
 	plt.show()
 
+def celex_coverage_per_recording_histogram(coverage = None,nbins=30):
+	ocr = Recording.objects.filter(ocr_transcription_available=True,
+		ocr_handwritten = False)
+	coverage = [x.celex_coverage for x in ocr]
+	plt.clf()
+	plt.hist(coverage,nbins)
+	plt.title('Distribution of recording transcription celex coverage')
+	plt.ylabel('number of recordings')
+	plt.xlabel('coverage')
+	plt.show()
+
 def transcription_sentence_confidence_density_plot():
 	t = Transcription.objects.all()
 	confidence = [x.confidence for x in t if x.confidence]
@@ -65,8 +77,10 @@ def transcription_sentence_confidence_density_plot():
 	plt.show()
 
 
-def analyze_transcriptions():
-	ocr = Recording.objects.filter(ocr_transcription_available=True)
+def analyze_transcriptions(save = False):
+	ocr = Recording.objects.filter(ocr_transcription_available=True,
+		ocr_handwritten = False)
+	print('n recordings:',ocr.count())
 	c = celex.Celex()
 	o = []
 	[o.extend(recording.ocr_transcriptions) for recording in ocr]
@@ -78,6 +92,7 @@ def analyze_transcriptions():
 	d = {'transcriptions':o,'words':words,'word_types':word_types}
 	d['word_types_in_celex']=word_types_in_celex
 	d['words_in_celex']=words_in_celex
+	if save: _save_analyze_dict(d)
 	return d
 
 def _save_analyze_dict(d = None):
@@ -90,7 +105,45 @@ def _save_analyze_dict(d = None):
 	with open('../TRANSCRIPTION_ANALYSIS/word_types_in_celex','w') as fout:
 		fout.write('\n'.join(d['word_types_in_celex']))
 
+
+def _find_double_transcriptions(transcriptions):
+	doubles = []
+	pks = []
+	for transcription in transcriptions:
+		temp = [transcription]
+		if transcription.pk in pks: continue
+		for other_transcription in transcriptions:
+			if other_transcription.pk in pks: continue
+			if transcription.pk == other_transcription.pk: continue
+			if transcription.ocr_avg_y == other_transcription.ocr_avg_y:
+				if transcription.text == other_transcription.text:
+					temp.append(other_transcription)
+		if len(temp) > 1:
+			pks.extend([x.pk for x in temp])
+			doubles.append(temp)
+	return doubles
+	
+def find_double_transcriptions():
+	recordings = Recording.objects.filter(ocr_transcription_available=True)
+	doubles = []
+	for recording in recordings:
+		for ocr_page in recording.ocrs:
+			doubles.extend(_find_double_transcriptions(ocr_page.transcriptions))
+	return doubles
+			
+	
+def annotate_ocr_recording_is_handwritten():
+	ocr = Recording.objects.filter(ocr_transcription_available=True) 
+	ocr = list(ocr)
+	ocr = sorted(ocr, key = lambda x:x.ocr_confidence)
+	for i,recording in enumerate(ocr):
+		if recording.ocr_handwritten: continue
+		print(i,recording)
+		recording.show_ocr_page_images(npages =9)
+		print(i,recording)
+		a = input('handwritten: ')
+		if a == 'y':
+			recording.ocr_handwritten = True
+			recording.save()
 	
 
-
-	
