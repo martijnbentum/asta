@@ -22,3 +22,14 @@ class Celex:
 
 	def in_celex(self,word):
 		return word in self.vocab
+
+
+def load_word_types():
+	with open('../TRANSCRIPTION_ANALYSIS/word_types_in_celex') as fin:
+		return fin.read().split('\n')
+
+def load_recording_coverage():
+	with open('../TRANSCRIPTION_ANALYSIS/coverage') as fin:
+		coverage = fin.read().split('\n')
+		coverage = list(map(float,coverage))
+	return coverage
