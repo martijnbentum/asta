@@ -1,8 +1,10 @@
 from django.db import models
 import numpy as np
 from utils.clean_text import clean_simple
+from utils import celex
 import matplotlib.image as mpimg
 from matplotlib import pyplot as plt
+plt.rcParams["figure.figsize"] = (10,12)
 	
 
 class Dialect(models.Model):
@@ -101,6 +103,9 @@ class Recording(models.Model):
 	age = models.PositiveIntegerField(null=True,blank=True) 
 	recording_type_dutch = models.CharField(max_length = 100, default = '')
 	recording_types = models.ManyToManyField(Recordingtype,blank=True)
+	celex_coverage = models.FloatField(null=True,blank=True)
+	ocr_confidence = models.FloatField(null=True,blank=True)
+	ocr_handwritten = models.BooleanField(default = False)
 	
 	def __repr__(self):
 		m = 'recording: ' + self.city_names +' | ' + str(self.duration)
@@ -125,6 +130,12 @@ class Recording(models.Model):
 			self._ocrs = self.ocr_set.all().order_by('page_number')
 		return self._ocrs
 
+	def show_ocr_page_images(self, npages = None):
+		if npages == None: npages = len(self.ocrs)
+		for ocr in self.ocrs[:npages]:
+			print(ocr.page_number)
+			ocr.show_page_image()
+
 	@property
 	def ocr_transcriptions(self):
 		if not self.ocr_transcription_available: return []
@@ -133,7 +144,32 @@ class Recording(models.Model):
 			for ocr_page in self.ocrs:
 				self._ocr_transcriptions.extend(ocr_page.transcriptions)
 		return self._ocr_transcriptions
+
+	@property
+	def text_clean(self):
+		if not self.ocr_transcription_available: return ''
+		return '\n'.join([x.text_clean for x in self.ocr_transcriptions])
+
+	@property
+	def words(self):
+		if not hasattr(self,'_words'):
+			self._words = self.text_clean.replace('\n',' ').split(' ')
+		return self._words
+
+	@property
+	def nwords(self):
+		return len(self.words)
+
+	@property
+	def words_in_celex(self):
+		if not hasattr(self,'_words_in_celex'):
+			wt_celex = celex.load_word_types()
+			self._words_in_celex = [w for w in self.words if w in wt_celex]
+		return self._words_in_celex
 			
+	@property
+	def nwords_in_celex(self):
+		return len(self.words_in_celex)
 
 class Ocr(models.Model):
 	'''optical charcter recognition information of the transcription.
@@ -148,6 +184,7 @@ class Ocr(models.Model):
 	recording = models.ForeignKey(Recording,**dargs)
 	confidence = models.FloatField(null=True,blank=True)
 	avg_left_x= models.FloatField(null=True,blank=True)
+	meta_text_page = models.BooleanField(default=False)
 
 	def __repr__(self):
 		m = self.ocr_filename + ' | ' + self.image_filename 
@@ -160,9 +197,32 @@ class Ocr(models.Model):
 	@property
 	def transcriptions(self):
 		if not hasattr(self,'_transcriptions'):
-			t= self.transcription_set.all()
+			t= self.transcription_set.filter(usable=True)
 			self._transcriptions = list(t.order_by('ocr_avg_y'))
 		return self._transcriptions
+
+	@property
+	def text_clean(self):
+		return '\n'.join([x.text_clean for x in self.transcriptions])
+
+	@property
+	def words(self):
+		return self.text_clean.replace('\n',' ').split(' ')
+
+	@property
+	def nwords(self):
+		return len(self.words)
+
+	@property
+	def words_in_celex(self):
+		if not hasattr(self,'_words_in_celex'):
+			wt_celex = celex.load_word_types()
+			self._words_in_celex = [w for w in self.words if w in wt_celex]
+		return self._words_in_celex
+			
+	@property
+	def nwords_in_celex(self):
+		return len(self.words_in_celex)
 
 	def _set_confidence(self):
 		confidence =[x.confidence for x in self.transcriptions if x.confidence]
@@ -186,11 +246,12 @@ class Ocr(models.Model):
 
 	def show_page_image(self):
 		img = self.image
+		plt.clf()
 		plt.imshow(img,cmap='gray')
 		plt.tight_layout()
-		frame = plt.gca()
-		frame.axes.get_xaxis().set_visible(False)
-		frame.axes.get_yaxis().set_visible(False)
+		axis= plt.gca()
+		axis.axes.get_xaxis().set_visible(False)
+		axis.axes.get_yaxis().set_visible(False)
 		plt.show()
 		
 
@@ -227,6 +288,9 @@ class Transcription(models.Model):
 	ocr_right_x = models.PositiveIntegerField(null=True,blank=True) 
 	ocr_avg_y = models.PositiveIntegerField(null=True,blank=True) 
 	recording = models.ForeignKey(Recording, **dargs)
+	usable = models.BooleanField(default=True)
+	double = models.BooleanField(default=False)
+	meta_text = models.BooleanField(default=False)
 
 	def __repr__(self):
 		m = str(self.page_number).ljust(4)
@@ -252,9 +316,44 @@ class Transcription(models.Model):
 
 	@property
 	def text_clean(self):
-		if not hasattr(self,'_clean_text_simple'):
-			self._clean_text_simple = clean_simple(self.text).lower()
-		return self._clean_text_simple
+		if not hasattr(self,'_text_clean'):
+			self._text_clean= clean_simple(self.text).lower()
+		return self._text_clean
+
+	@property
+	def words(self):
+		return self.text_clean.split(' ')
+
+	@property
+	def nwords(self):
+		return len(self.words)
+
+	@property
+	def words_in_celex(self):
+		if not hasattr(self,'_words_in_celex'):
+			wt_celex = celex.load_word_types()
+			self._words_in_celex = [w for w in self.words if w in wt_celex]
+		return self._words_in_celex
+			
+	@property
+	def nwords_in_celex(self):
+		return len(self.words_in_celex)
+
+
+	def show_line_image(self):
+		img = self.ocr.image
+		y = self.ocr_avg_y
+		start, end = y - 30, y + 30
+		plt.clf()
+		plt.imshow(img[start:end],cmap='gray')
+		plt.tight_layout()
+		axis= plt.gca()
+		axis.axes.get_xaxis().set_visible(False)
+		axis.axes.get_yaxis().set_visible(False)
+		axis.hlines(y=30,xmin=self.ocr_left_x,xmax=self.ocr_right_x,
+			linewidth=6,alpha=0.2)
+		plt.show()
+		print(self)
 
 
 
