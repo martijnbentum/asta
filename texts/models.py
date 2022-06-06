@@ -1,7 +1,7 @@
 from django.db import models
 import numpy as np
 from utils.clean_text import clean_simple
-from utils import celex
+from utils import celex, audio
 import matplotlib.image as mpimg
 from matplotlib import pyplot as plt
 plt.rcParams["figure.figsize"] = (10,12)
@@ -73,6 +73,10 @@ class Asr(models.Model):
 	'''
 	modelname = models.CharField(max_length=300, default='')
 	directory = models.CharField(max_length=300, default='')
+	comments = models.TextField(default = '')
+	model_description = models.TextField(default='')
+	tokenizer_description = models.TextField(default='')
+	feature_extractor_description = models.TextField(default='')
 
 	def __repr__(self):
 		return self.modelname
@@ -115,6 +119,10 @@ class Recording(models.Model):
 		return self.__repr__()
 
 	@property
+	def name(self):
+		return self.city_names.replace(', ','_').replace(' ','_')
+
+	@property
 	def cities(self):
 		if not hasattr(self,'_cities'):
 			self._cities = [x.name for x in self.locations.all()]
@@ -129,6 +137,9 @@ class Recording(models.Model):
 		if not hasattr(self,'_ocrs'): 
 			self._ocrs = self.ocr_set.all().order_by('page_number')
 		return self._ocrs
+
+	def load_audio(self,start = 0.0, end = None):
+		return audio.load_recording(self,start,end)
 
 	def show_ocr_page_images(self, npages = None):
 		if npages == None: npages = len(self.ocrs)
@@ -290,7 +301,8 @@ class Transcription(models.Model):
 	recording = models.ForeignKey(Recording, **dargs)
 	usable = models.BooleanField(default=True)
 	double = models.BooleanField(default=False)
-	meta_text = models.BooleanField(default=False)
+	is_meta_text = models.BooleanField(default=False)
+	asr_words = models.TextField(default='')
 
 	def __repr__(self):
 		m = str(self.page_number).ljust(4)
@@ -304,7 +316,9 @@ class Transcription(models.Model):
 
 	@property
 	def page_number(self):
-		return self.ocr.page_number
+		if self.ocr:
+			return self.ocr.page_number
+		else: return ''
 
 	@property
 	def page_confidence(self):
