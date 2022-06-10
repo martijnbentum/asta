@@ -83,8 +83,10 @@ def save_pipeline_output_to_transcription(output, asr, recording):
 	tt = Transcriptiontype.objects.get(name = 'asr')
 	table = pipeline_output2table(output)
 	table_str = table2str(table)
-	start = table[0][1]
-	end  = table[-1][2]
+	if table:
+		start = table[0][1]
+		end  = table[-1][2]
+	else: start, end = None, None
 	transcription = Transcription(
 		recording = recording,
 		text = output['text'],
