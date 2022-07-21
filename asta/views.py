@@ -31,12 +31,10 @@ def protected_media(request, filename):
 
     # Determine the mime type
     (mime_type, encoding) = mimetypes.guess_type(full_path)
-    print(mime_type,encoding, 'mime')
 
     # Construct the response
     response = HttpResponse(content_type=mime_type)
     response['Content-Disposition'] = 'inline;filename='+base_name
     response['X-Sendfile'] = full_path
-    print(response,dir(response),'reponse')
 
     return response

@@ -22,6 +22,6 @@ urlpatterns = [
 	path('', include('texts.urls')),
 ]
 
-x = re_path(r'vol/(?P<filename>.*)$', views.protected_media,
+x = re_path(r'media/(?P<filename>.*)$', views.protected_media,
     name='protected_media')
 urlpatterns.append(x)
