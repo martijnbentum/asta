@@ -1,18 +1,90 @@
-<h1>{{a.recording.name}}</h1>
+<h1>{{a.recording.name}} a.recording.pk</h1>
 <hr>
 
-<audio controls
-	id="audio"
-	preload="auto"
-	src="/vol/TEST/test.mp3"
-	type="audio/mpeg"
+<p>request type: {{post}}</p>
+<button onclick="play()">play</button>
+<br>
+<br>
+<form method='post'>
+{% csrf_token %}
+<button type='submit' onclick="set_quality('bad')" value="bad">bad</button>
+<button type='submit' onclick="set_quality('good')" value="good">good</button>
+<input type="hidden" name="quality" id="quality" value = "">
+</form>
+
+<audio autoplay
+    id = "audio"
+	src="{{a.recording.web_wav}}#t={{o.start_time}},{{o.end_time}}"
+	type="audio/x-wav"
+    >
 	your browser does not support the audio element
-	>
 </audio>
 	
+<h2>
+{{o.transcription.text_clean}}
+</h2>
 
-<img src="/vol/TEST/test.jpg">
+<p>{{o.start_time}}</p>
+<p>
+{{o.end_time}}
+</p>
+<p>
+{{o.ocr_align_text}}
+</p>
+<p>
+{{o.asr_align_text}}
+</p>
+<p>
+{{o.align_mismatch}}
+</p>
+
+<hr>
+
+{{o}}
+<img src="{{ocr.web_image_filename}}">
+
+<script>
+    function play() {
+        var audio = document.getElementById('audio');
+        audio.currentTime = {{o.start_time}};
+        console.log(audio)
+        audio.play();
+        audio.addEventListener('timeupdate', (event) => {
+            console.log(audio.currentTime);
+            if (audio.currentTime > {{o.end_time}}){
+                audio.pause() 
+            }
+        });
+    }
+
+    function set_quality(value) {
+        var quality = document.getElementById('quality');
+        quality.value = value;
+        console.log(quality)
+    }
 
 
-
+    function play1() {
+        var duration = {{o.end_time}} - {{o.start_time}};
+        console.log('play audio {{a.recording.web_mp3}}')
+        var audio = new Audio('{{a.recording.web_mp3}}');
+        console.log('audio: ',audio)
+        audio.currentTime={{o.start_time}};
+        console.log('play {{start_time}} {{o.start_time}}')
+        var play_promise = audio.play();
+        console.log(play_promise);
+        /*
+        if (play_promise !== undefined) {
+            console.log('ok')
+            play_promise.then( function () {
+                setTimeout(function () {
+                    console.log('stop {{o.stop_time}}',duration)
+                    audio.pause();
+                }, duration);
+            })
+        }
+        */
+    }
+</script>
+    
 
