@@ -279,6 +279,17 @@ class Align:
             print('OCR: ', self.ocr_align[start:end])
             print('ASR: ', self.asr_align[start:end])
             print(' ')
+
+    def filter_ocr_lines(self,mismatch_threshold = 55):
+        output = []
+        for ocr_line in self.ocr_lines:
+            if ocr_line.align_mismatch < mismatch_threshold:
+                output.append(ocr_line)
+        return output
+
+    @property
+    def ocr_lines_ok_perc(self):
+        return len(self.filter_ocr_lines()) / len(self.ocr_lines) * 100
         
 
 class Ocrline:
