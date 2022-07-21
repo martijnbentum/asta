@@ -260,11 +260,14 @@ class Ocr(models.Model):
             self.save()
 
     @property
-    def image(self):
+    def image_full_path(self):
         path = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/transcriptions/'
         path += '1001:2_Transcripties_geanonimiseerd/'
-        filename = path + self.image_filename
-        img = mpimg.imread(filename)
+        return path + self.image_filename
+
+    @property
+    def image(self):
+        img = mpimg.imread(self.image_full_path)
         return img
 
     def show_page_image(self):
