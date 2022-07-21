@@ -194,6 +194,16 @@ class Recording(models.Model):
     def nwords_in_celex(self):
         return len(self.words_in_celex)
 
+    @property
+    def web_mp3(self):
+        from utils.download_media import make_new_audio_filename
+        return make_new_audio_filename(self.original_audio_filename)
+
+    @property
+    def web_wav(self):
+        from utils.download_media import make_new_audio_filename
+        return make_new_audio_filename(self.wav_filename)
+
 class Ocr(models.Model):
     '''optical charcter recognition information of the transcription.
     the speech recordings were transcribed on type writer and scanned and ocr
@@ -264,6 +274,12 @@ class Ocr(models.Model):
         path = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/transcriptions/'
         path += '1001:2_Transcripties_geanonimiseerd/'
         return path + self.image_filename
+
+    @property
+    def web_image_filename(self):
+        from utils.download_media import make_new_ocr_filename
+        return make_new_ocr_filename(self.image_full_path)
+        
 
     @property
     def image(self):
