@@ -184,7 +184,7 @@ class Align:
         for ocr_line in self.ocr_lines:
             if not ocr_line.ok: ok = False
         if not ok: self.ocr_lines_ok = False
-        else: self.ocr_lines_ok = False
+        else: self.ocr_lines_ok = True 
         for asr_word in self.asr_words:
             if not asr_word.ok: ok1 = False
         if not ok1: self.asr_words_ok = False
