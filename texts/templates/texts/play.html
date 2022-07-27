@@ -1,3 +1,7 @@
+{% extends "texts/base.html" %}
+
+{% block content %}
+hello
 <h1>{{a.recording.name}} a.recording.pk</h1>
 <hr>
 
@@ -12,9 +16,11 @@
 <input type="hidden" name="quality" id="quality" value = "">
 </form>
 
+<p>{{a.recording.web_wav}}</p>
+<p>{{ocr.web_image_filename}}</p>
 <audio autoplay
     id = "audio"
-	src="{{a.recording.web_wav}}#t={{o.start_time}},{{o.end_time}}"
+	src="/{{a.recording.web_wav}}#t={{o.start_time}},{{o.end_time}}"
 	type="audio/x-wav"
     >
 	your browser does not support the audio element
@@ -41,7 +47,7 @@
 <hr>
 
 {{o}}
-<img src="{{ocr.web_image_filename}}">
+<img src="/{{ocr.web_image_filename}}">
 
 <script>
     function play() {
@@ -87,4 +93,5 @@
     }
 </script>
     
+{% endblock content %}
 
