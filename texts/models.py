@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 import numpy as np
 from utils.clean_text import clean_simple
 from utils import celex, audio
@@ -416,5 +417,19 @@ class Transcription(models.Model):
         plt.show()
         print(self)
 
+class Annotation(models.Model):
+    dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
+    recording = models.ForeignKey(Recording, **dargs)
+    ocr = models.ForeignKey(Ocr, **dargs)
+    transcriptions= models.ManyToManyField(Transcription, blank=True)
+    asr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
+    ocr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
+    alignment= models.CharField(max_length=100,default='')
+    # annotator= models.ForeignKey(get_user_model(), **dargs)
+    comments= models.TextField(default='')
 
+    class Meta:
+        unique_together = [['ocr_transcription_pk','recording']]
 
+    def __repr__(self):
+        return self.name
