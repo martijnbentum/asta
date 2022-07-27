@@ -6,6 +6,7 @@ from django.views.generic.detail import DetailView
 from django.urls import reverse_lazy
 
 
+
 def protected_media(request, filename):
     """
     View to send file via X-Sendfile
@@ -38,3 +39,4 @@ def protected_media(request, filename):
     response['X-Sendfile'] = full_path
 
     return response
+
