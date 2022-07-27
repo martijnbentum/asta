@@ -46,7 +46,7 @@ def make_province_to_recording_dict(only_with_ocr_available = True,
         else: d[province].append(recording)
     return d
 
-def select_recordings_with_areas_list(areas = None, recordings = None,
+def get_recordings_with_areas_list(areas = None, recordings = None,
     only_with_ocr_available = True):
     if areas == None:
         areas = 'NBra-W,NBra-M,NBra-Z,NBra-O,NLimb-Z,NLimb-M,NLimb-N'.split(',')
@@ -57,7 +57,7 @@ def select_recordings_with_areas_list(areas = None, recordings = None,
     recordings = recordings.filter(area__in = areas) 
     return recordings
 
-def select_recordings_with_province_list(provinces = None, recordings = None,
+def get_recordings_with_province_list(provinces = None, recordings = None,
     only_with_ocr_available = True):
     if provinces == None:
         provinces = 'Noord-Brabant,Limburg,Gelderland'.split(',')
@@ -68,7 +68,7 @@ def select_recordings_with_province_list(provinces = None, recordings = None,
     recordings = recordings.filter(province__name__in = provinces) 
     return recordings
 
-def select_recordings_from_country(country = 'Netherlands', recordings = None,
+def get_recordings_from_country(country = 'Netherlands', recordings = None,
     only_with_ocr_available = True):
     if recordings == None: 
         recordings = Recording.objects.all()
