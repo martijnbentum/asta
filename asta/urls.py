@@ -17,11 +17,15 @@ from django.contrib import admin
 from django.urls import path, re_path, include
 from . import views
 
+
 urlpatterns = [
+    path('accounts/',include('accounts.urls')),
+    path('accounts/',include('django.contrib.auth.urls')),
     path('admin/', admin.site.urls),
-	path('', include('texts.urls')),
+	path('texts/', include('texts.urls')),
+	path('', include('texts.urls'), name = 'texts'),
 ]
 
-x = re_path(r'media/(?P<filename>.*)$', views.protected_media,
+x = re_path(r'^media/(?P<filename>.*)$', views.protected_media,
     name='protected_media')
 urlpatterns.append(x)
