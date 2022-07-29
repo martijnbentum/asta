@@ -1,6 +1,7 @@
 from texts.models import Recording
 from collections import Counter
-from utils import align_ocr_asr as aoa
+from utils import align
+import random
 
 
 def get_recordings_with_area_specified(only_with_ocr_available = True):
@@ -16,7 +17,7 @@ def get_recordings_with_province_specified(only_with_ocr_available = True):
     return recordings
 
 def align_ok(recording):
-    a = aoa.Align(recording)
+    a = align.Align(recording)
     return a.ok and a.ocr_lines_ok
 
 def get_all_areas(only_with_ocr_available = True):
@@ -76,6 +77,57 @@ def get_recordings_from_country(country = 'Netherlands', recordings = None,
         recordings = recordings.filter(ocr_transcription_available = True)
     return recordings.filter(country__name = 'Netherlands')
 
+def filter_ocr_lines_without_start_end_times(ols):
+    output = []
+    for ol in ols:
+        if type(ol.start_time) == float and type(ol.end_time) == float:
+            output.append(ol)
+    return output
+
+def filter_ocr_lines_indices(ols, exclude_indices): 
+    return [ol for ol in ols if ol.ocrline_index not in exclude_indices]
+
+def ocr_lines_to_indices(ols):
+    return [ol.ocrline_index for ol in ols]
+
+def get_ocr_line(align, location = 'first', maximum_align_mismatch = 55, 
+        ols = None):
+    if not align.ok: return None
+    if ols == None:
+        ols=align.filter_ocr_lines(mismatch_threshold = maximum_align_mismatch)
+    ols = filter_ocr_lines_without_start_end_times(ols)
+    if len(ols) == 0:
+        return None
+    if location == 'first': n = 0
+    if location == 'middle': n = int(len(ols)/2)
+    if location == 'last': n = -1
+    return ols[n]
+        
+def sample_ocr_lines(align, min_lines = 30, max_lines=100, perc_lines = 20,
+    maximum_align_mismatch = 55, exclude_indices = []):
+    ols=align.filter_ocr_lines(mismatch_threshold = maximum_align_mismatch)
+    ols = filter_ocr_lines_without_start_end_times(ols)
+    ols = filter_ocr_lines_indices(ols, exclude_indices)
+    n = int(len(align.ocr_lines) * (perc_lines/100))
+    if n < min_lines: n = min_lines
+    if n > max_lines: n = maximum_lines
+    if len(ols) <= n: return ols
+    output = [ols.pop(0),ols.pop(int(len(ols)/2)), ols.pop(-1)]
+    output += random.sample(ols,n-3)
+    return output
 
     
+def get_dutch_provinces():
+    recordings = get_recordings_from_country(country='Netherlands')
+    return dict(Counter([x.province.name for x in recordings if x.province]))
+
+def get_dutch_areas():
+    recordings = get_recordings_from_country(country='Netherlands')
+    return dict(Counter([x.area for x in recordings if x.area]))
+    
+    
+    
+    
+    
+
     
