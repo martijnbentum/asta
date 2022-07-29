@@ -20,8 +20,21 @@
 <br>
 <form method='post'>
 {% csrf_token %}
-<button type='submit' onclick="set_quality('bad')" value="bad">bad</button>
-<button type='submit' onclick="set_quality('good')" value="good">good</button>
+<button 
+	class="btn btn-danger"
+	type='submit' onclick="set_quality('bad')" 
+	value="bad">bad
+</button>
+<button 
+	class="btn btn-warning"
+	type='submit' onclick="set_quality('partial')" 
+	value="bad">partial
+</button>
+<button 
+	class="btn btn-success"
+	type='submit' onclick="set_quality('good')" 
+	value="bad">good
+</button>
 <input type="hidden" name="quality" id="quality" value = "">
 </form>
 
