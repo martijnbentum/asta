@@ -106,11 +106,12 @@ def get_ocr_line(align, location = 'first', maximum_align_mismatch = 55,
 def sample_ocr_lines(align, min_lines = 30, max_lines=100, perc_lines = 20,
     maximum_align_mismatch = 55, exclude_indices = []):
     ols=align.filter_ocr_lines(mismatch_threshold = maximum_align_mismatch)
+    if len(ols) == 0: return []
     ols = filter_ocr_lines_without_start_end_times(ols)
     ols = filter_ocr_lines_indices(ols, exclude_indices)
     n = int(len(align.ocr_lines) * (perc_lines/100))
     if n < min_lines: n = min_lines
-    if n > max_lines: n = maximum_lines
+    if n > max_lines: n = max_lines
     if len(ols) <= n: return ols
     output = [ols.pop(0),ols.pop(int(len(ols)/2)), ols.pop(-1)]
     output += random.sample(ols,n-3)
@@ -126,6 +127,34 @@ def get_dutch_areas():
     return dict(Counter([x.area for x in recordings if x.area]))
     
     
+'''
+def args_to_ocrline(request, location= '', location_type= '', exclude = 'None',
+    minimum_match = 35, perc_lines = 20, record_index = 0, line_index = 0):
+'''
+def args_to_ocrline(args):
+    print(args)
+    if args['location_type'] == 'area':
+        recordings = get_recordings_with_areas_list([args['location']])
+    if args['location_type'] == 'province':
+        recordings = get_recordings_with_province_list([args['location']])
+    recording = recordings[args['record_index']]
+    mismatch = 100 - args['minimum_match']
+    print('mismatch',mismatch)
+    ocr_lines = sample_ocr_lines(recording.align, 
+        maximum_align_mismatch = mismatch,perc_lines = args['perc_lines'])
+    print('n ocr lines',len(ocr_lines))
+    if args['line_index'] >= len(ocr_lines) or len(ocr_lines) == 0: 
+        print(recording)
+        args['record_index'] +=1
+        if args['record_index'] >= recordings.count(): 
+            return 'done with all recordings'
+        args['line_index'] = 0
+        return args_to_ocrline(args)
+    args['ocrline'] = ocr_lines[args['line_index']]
+    args['nocrlines'] = len(ocr_lines)
+    args['line_index'] +=1
+    print(args)
+    return args
     
     
     
