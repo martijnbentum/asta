@@ -15,9 +15,15 @@
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" 
 			role="button" data-toggle="dropdown" aria-haspopup="true" 
 			aria-expanded="false">
-          View
+          Annotate
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+          <a class="dropdown-item" href=
+			"{% url 'texts:select_province'%}">
+			annotate by province</a>
+          <a class="dropdown-item" href=
+			"{% url 'texts:select_area'%}">
+			annotate by area</a>
           <a class="dropdown-item" href=
 			"{% url 'texts:play'%}">
 			play</a>
@@ -28,7 +34,7 @@
         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" 
 			role="button" data-toggle="dropdown" aria-haspopup="true" 
 			aria-expanded="false">
-          Add
+          View
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
           <a class="dropdown-item" href=
@@ -39,18 +45,25 @@
     </ul>
 
 	<ul class = "navbar-nav navbar-right">
-		<li class ="nav-item">
 		  {% if user.username == '' %}
-            <a class="nav-link" href="{% url 'login' %}">
-                login<span class="sr-only">(current)</span>
-            </a>
+            <li class ="nav-item">
+                <a class="nav-link" href="{% url 'login' %}">
+                    login<span class="sr-only">(current)</span>
+                </a>
+            </li>
 		  {% else %}
-			<a class="nav-link" href="{% url 'logout' %}">
-				<i class="fas fa-sign-out-alt"></i>
-				<span class="sr-only">(current)</span>
-			</a>
+            <li class = "nav-item">
+                <a class="nav-link" href="{% url 'accounts:edit_profile' %}">
+                    {{user.username}}
+                </a>
+            </li>
+            <li class = "nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="sr-only">(current)</span>
+                </a>
+            </li>
 		  {% endif %}
-		</li>
 	</ul>
 
 

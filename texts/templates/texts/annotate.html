@@ -1,0 +1,32 @@
+{% extends "texts/base.html" %}
+
+{% block content %}
+start
+{{location}}
+{{location_type}}
+{{exclude}}
+{{minimum_match}}
+{{perc_lines}}
+{{record_index}}
+{{line_index}}
+end
+
+<input 
+    type="hidden" name="line_index" 
+    id="line_index" value = "{{line_index}}">
+<input 
+    type="hidden" name="record_index" 
+    id="record_index" value = "{{record_index}}">
+
+<script>
+    function update_indices() {
+        var line_index= document.getElementById('line_index');
+        line_index.value = parseInt(line_index.value) +1
+        console.log('updated line index:',line_index.value)
+        var record__index= document.getElementById('record_index');
+        console.log('record index:',record_index.value)
+    }
+
+update_indices();
+</script>
+{% endblock %}
