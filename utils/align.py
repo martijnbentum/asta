@@ -1,8 +1,12 @@
 from django.apps import apps
 import glob
 import textgrids
+import sys
 
-align_dir = '/vol/tensusers/mbentum/ASTA/ALIGN/'
+if sys.platform == 'darwin':
+	align_dir = 'vol/tensusers/mbentum/ASTA/ALIGN/'
+else:
+	align_dir = '/vol/tensusers/mbentum/ASTA/ALIGN/'
 output_dir = align_dir + 'OUTPUT/'
 textgrid_dir = '../TEXTGRIDS/'
 
