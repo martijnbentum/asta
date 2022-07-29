@@ -1,7 +1,16 @@
 {% extends "texts/base.html" %}
 
+{%load static %}
+{%block head %}
+	<link rel="stylesheet" href="{% static 'texts/play.css' %}" />
+{% endblock %}
+
 {% block content %}
-hello
+
+{{o.start_time|json_script:'start-time'}}
+{{o.end_time|json_script:'end-time'}}
+{{a.recording.web_wav|json_script:'web-wav'}}
+
 <h1>{{a.recording.name}} a.recording.pk</h1>
 <hr>
 
@@ -49,49 +58,7 @@ hello
 {{o}}
 <img src="/{{ocr.web_image_filename}}">
 
-<script>
-    function play() {
-        var audio = document.getElementById('audio');
-        audio.currentTime = {{o.start_time}};
-        console.log(audio)
-        audio.play();
-        audio.addEventListener('timeupdate', (event) => {
-            console.log(audio.currentTime);
-            if (audio.currentTime > {{o.end_time}}){
-                audio.pause() 
-            }
-        });
-    }
-
-    function set_quality(value) {
-        var quality = document.getElementById('quality');
-        quality.value = value;
-        console.log(quality)
-    }
-
-
-    function play1() {
-        var duration = {{o.end_time}} - {{o.start_time}};
-        console.log('play audio {{a.recording.web_mp3}}')
-        var audio = new Audio('{{a.recording.web_mp3}}');
-        console.log('audio: ',audio)
-        audio.currentTime={{o.start_time}};
-        console.log('play {{start_time}} {{o.start_time}}')
-        var play_promise = audio.play();
-        console.log(play_promise);
-        /*
-        if (play_promise !== undefined) {
-            console.log('ok')
-            play_promise.then( function () {
-                setTimeout(function () {
-                    console.log('stop {{o.stop_time}}',duration)
-                    audio.pause();
-                }, duration);
-            })
-        }
-        */
-    }
-</script>
     
+<script src="{% static 'texts/play.js' %}"></script>
 {% endblock content %}
 
