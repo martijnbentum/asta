@@ -39,6 +39,7 @@ def annotate(request, location= '', location_type= '', exclude = 'None',
         'exclude':exclude,'minimum_match':minimum_match,
         'perc_lines':perc_lines, 'record_index':record_index,
         'line_index':line_index}
+    args = select.args_to_ocrline(args)
     return render(request, 'texts/annotate.html',args)
 
 def play(request,pk = 2):
