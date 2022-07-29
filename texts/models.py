@@ -1,8 +1,8 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 import numpy as np
 from utils.clean_text import clean_simple
-from utils import celex, audio
+from utils import celex, audio, align
 import matplotlib.image as mpimg
 from matplotlib import pyplot as plt
 plt.rcParams["figure.figsize"] = (10,12)
@@ -204,6 +204,10 @@ class Recording(models.Model):
     def web_wav(self):
         from utils.download_media import make_new_audio_filename
         return make_new_audio_filename(self.wav_filename)
+
+    @property
+    def align(self):
+        return align.Align(self)
 
 class Ocr(models.Model):
     '''optical charcter recognition information of the transcription.
@@ -420,16 +424,26 @@ class Transcription(models.Model):
 class Annotation(models.Model):
     dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
     recording = models.ForeignKey(Recording, **dargs)
+    ocr_line_index = models.PositiveIntegerField(null=True,blank=True) 
     ocr = models.ForeignKey(Ocr, **dargs)
     transcriptions= models.ManyToManyField(Transcription, blank=True)
     asr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
     ocr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
     alignment= models.CharField(max_length=100,default='')
-    # annotator= models.ForeignKey(get_user_model(), **dargs)
+    annotator= models.ForeignKey(User, **dargs)
     comments= models.TextField(default='')
 
     class Meta:
-        unique_together = [['ocr_transcription_pk','recording']]
+        unique_together = [['ocr_transcription_pk','recording','annotator']]
 
     def __repr__(self):
-        return self.name
+        return self.annotator.username
+
+    @property
+    def align(self):
+        return self.recording.align
+
+    @property
+    def ocr_line(self):
+        return self.align.ocr_lines[self.ocr_line_index]
+        
