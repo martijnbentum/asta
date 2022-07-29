@@ -131,6 +131,7 @@ class Align:
             print(' ')
 
     def filter_ocr_lines(self,mismatch_threshold = 55):
+        if not hasattr(self,'ocr_lines'): return [] 
         output = []
         for ocr_line in self.ocr_lines:
             if ocr_line.align_mismatch < mismatch_threshold:
@@ -237,7 +238,7 @@ class Ocrline:
 
     @property
     def align_match(self):
-        return 1 - self.align_mismatch()
+        return 100 - self.align_mismatch
             
     @property
     def asr_align_gaps(self):
