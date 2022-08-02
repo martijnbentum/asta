@@ -427,8 +427,7 @@ class Transcription(models.Model):
 class Annotation(models.Model):
     dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
     recording = models.ForeignKey(Recording, **dargs)
-    ocr_line_index = models.PositiveIntegerField(null=True,blank=True) 
-    ocr = models.ForeignKey(Ocr, **dargs)
+    ocrline_index = models.PositiveIntegerField(null=True,blank=True) 
     transcriptions= models.ManyToManyField(Transcription, blank=True)
     asr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
     ocr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
