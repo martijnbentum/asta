@@ -110,6 +110,26 @@
         name="record_index" 
         id="record_index" 
         value = "{{record_index}}">
+    <input 
+        type="hidden" 
+        name="asr_transcription_pk" 
+        id="asr_transcription_pk" 
+        value = "{{ocrline.align.asr_transcription.pk}}">
+    <input 
+        type="hidden" 
+        name="ocr_transcription_pk" 
+        id="ocr_transcription_pk" 
+        value = "{{ocrline.transcription.pk}}">
+    <input 
+        type="hidden" 
+        name="ocrline_index" 
+        id="ocrline_index" 
+        value = "{{ocrline.ocrline_index}}">
+    <input 
+        type="hidden" 
+        name="recording_pk" 
+        id="recording_pk" 
+        value = "{{ocrline.recording.pk}}">
 </form>
 
 <br>
