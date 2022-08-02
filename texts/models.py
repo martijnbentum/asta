@@ -2,10 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import numpy as np
 from utils.clean_text import clean_simple
-from utils import celex, audio, align
-import matplotlib.image as mpimg
-from matplotlib import pyplot as plt
-plt.rcParams["figure.figsize"] = (10,12)
+from utils import celex, align
     
 
 class Dialect(models.Model):
@@ -140,6 +137,7 @@ class Recording(models.Model):
         return self._ocrs
 
     def load_audio(self,start = 0.0, end = None):
+        from utils import audio
         return audio.load_recording(self,start,end)
 
     def show_ocr_page_images(self, npages = None):
@@ -288,10 +286,13 @@ class Ocr(models.Model):
 
     @property
     def image(self):
+        import matplotlib.image as mpimg
         img = mpimg.imread(self.image_full_path)
         return img
 
     def show_page_image(self):
+        from matplotlib import pyplot as plt
+        plt.rcParams["figure.figsize"] = (10,12)
         img = self.image
         plt.clf()
         plt.imshow(img,cmap='gray')
@@ -407,6 +408,8 @@ class Transcription(models.Model):
 
 
     def show_line_image(self):
+        from matplotlib import pyplot as plt
+        plt.rcParams["figure.figsize"] = (10,12)
         img = self.ocr.image
         y = self.ocr_avg_y
         start, end = y - 30, y + 30
