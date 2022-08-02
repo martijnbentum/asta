@@ -2,6 +2,8 @@ from django.apps import apps
 import glob
 import textgrids
 import sys
+import pickle
+import os
 
 if sys.platform == 'darwin':
 	align_dir = 'vol/tensusers/mbentum/ASTA/ALIGN/'
@@ -17,15 +19,33 @@ class Align:
             asr = Asr.objects.get(pk = 1)
         self.recording = recording
         self.asr = asr
-        self._load_alignment()
-        if self.ok:
-            self._align_ocr_transcriptions()
-            self._get_asr_transcription()
-            self._align_asr_words()
-            self._check_ok()
+        self.pickle_filename = '../pickle_align/align_r-' + str(self.recording.pk)
+        self.pickle_filename += '_a-' + str(self.asr.pk)
+        if os.path.isfile(self.pickle_filename):
+            self.__dict__ = self.load_pickle()
+        else:
+            self._load_alignment()
+            if self.ok:
+                self._align_ocr_transcriptions()
+                self._get_asr_transcription()
+                self._align_asr_words()
+                self._check_ok()
+                self.save_pickle()
         
     def __repr__(self):
         return 'Alignment of ' + self.recording.__repr__()
+
+    def save_pickle(self):
+        print('saving', self.pickle_filename)
+        with open(self.pickle_filename, 'wb') as fout:
+            pickle.dump(self, fout)
+
+    def load_pickle(self):
+        print('loading', self.pickle_filename)
+        with open(self.pickle_filename, 'rb') as fin:
+            o = pickle.load(fin)
+        return o.__dict__
+        
 
     def _check_ok(self):
         ok,ok1 = True,True
@@ -147,6 +167,7 @@ class Ocrline:
     def __init__(self,transcription,align,index, ocrline_index):
         self.transcription = transcription
         self.align = align
+        self.recording = align.recording
         self.index = index
         self.ocrline_index = ocrline_index
         self._align_transcription_with_alignment()
@@ -422,6 +443,7 @@ def recording_to_alignment(recording, asr = None):
         asr = Asr.objects.get(pk = 1)
     f = recording_to_alignment_filename(recording,asr)
     if not f: return False,False
+    print(f)
     with open(f) as fin:
         ocr, asr = fin.read().split('\n')
     return ocr, asr
