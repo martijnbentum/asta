@@ -35,6 +35,10 @@ def select_area(request):
 
 def annotate(request, location= '', location_type= '', exclude = 'None',
     minimum_match = 35, perc_lines = 20, record_index = 0, line_index = 0):
+    print('request',request)
+    print('post',request.POST)
+    if request.POST:
+        line_index, record_index = handle_annotate_post(request)
     args = {'location':location,'location_type':location_type,
         'exclude':exclude,'minimum_match':minimum_match,
         'perc_lines':perc_lines, 'record_index':record_index,
@@ -62,6 +66,12 @@ def play(request,pk = 2):
 
 
     
-    
+def handle_annotate_post(request): 
+    line_index, record_index= [],[]
+    try: line_index = int(request.POST['line_index'])
+    except ValueError: pass
+    try: record_index = int(request.POST['record_index'])
+    except ValueError: pass
+    return line_index, record_index
     
     
