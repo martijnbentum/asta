@@ -2,6 +2,7 @@ from texts.models import Recording
 from collections import Counter
 from utils import align
 import random
+import time
 
 
 def get_recordings_with_area_specified(only_with_ocr_available = True):
@@ -132,17 +133,18 @@ def args_to_ocrline(request, location= '', location_type= '', exclude = 'None',
     minimum_match = 35, perc_lines = 20, record_index = 0, line_index = 0):
 '''
 def args_to_ocrline(args):
-    print(args)
+    start = time.time()
+    print(args, delta(start))
     if args['location_type'] == 'area':
         recordings = get_recordings_with_areas_list([args['location']])
     if args['location_type'] == 'province':
         recordings = get_recordings_with_province_list([args['location']])
     recording = recordings[args['record_index']]
     mismatch = 100 - args['minimum_match']
-    print('mismatch',mismatch)
+    print('mismatch',mismatch,delta(start))
     ocr_lines = sample_ocr_lines(recording.align, 
         maximum_align_mismatch = mismatch,perc_lines = args['perc_lines'])
-    print('n ocr lines',len(ocr_lines))
+    print('n ocr lines',len(ocr_lines),delta(start))
     if args['line_index'] >= len(ocr_lines) or len(ocr_lines) == 0: 
         print(recording)
         args['record_index'] +=1
@@ -153,10 +155,12 @@ def args_to_ocrline(args):
     args['ocrline'] = ocr_lines[args['line_index']]
     args['nocrlines'] = len(ocr_lines)
     args['line_index'] +=1
-    print(args)
+    print(args,delta(start))
     return args
     
     
+def delta(start):
+    return time.time() - start
     
 
     
