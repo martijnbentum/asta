@@ -1,0 +1,40 @@
+.title-parent {
+    white-space:nowrap;
+}
+.title-child {
+    display:inline-block;
+}
+
+.right {
+    position: absolute;
+    right: 10px;
+}
+
+.grey {
+    color:lightgrey;
+}
+
+.ocr-text {
+    padding-top:20px;
+    padding-bottom:20px;
+    font-family:Arial,sans-serif;
+    font-family:"Courier New",monospace;
+    font-size:30px;
+
+}
+
+.align {
+    padding:0px;
+    margin:0px;
+    font-family:"Courier New",monospace;
+    font-size:18px;
+    color:grey;
+}
+
+.mismatch {
+    color:grey;
+}
+
+.small {
+    font-size:10px;
+}
