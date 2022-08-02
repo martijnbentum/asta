@@ -20,7 +20,7 @@ function play() {
 
 function update_indices() {
 	var line_index= document.getElementById('line_index');
-	line_index.value = parseInt(line_index.value) +1
+	line_index.value = parseInt(line_index.value) 
 	console.log('updated line index:',line_index.value)
 	var record__index= document.getElementById('record_index');
 	console.log('record index:',record_index.value)
