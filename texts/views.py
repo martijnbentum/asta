@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from . models import Recording, Transcription
+from . models import Recording, Transcription, Ocr, Asr
 from utils import align, select
 import random
 
@@ -38,7 +38,7 @@ def annotate(request, location= '', location_type= '', exclude = 'None',
     print('request',request)
     print('post',request.POST)
     if request.POST:
-        line_index, record_index = handle_annotate_post(request)
+        line_index, record_index, annotation_dict = handle_annotate_post(request)
     args = {'location':location,'location_type':location_type,
         'exclude':exclude,'minimum_match':minimum_match,
         'perc_lines':perc_lines, 'record_index':record_index,
@@ -65,13 +65,33 @@ def play(request,pk = 2):
     return render(request, 'texts/play.html',args)
 
 
-    
-def handle_annotate_post(request): 
-    line_index, record_index= [],[]
+def _get_indices(request):
+    line_index, record_index= 0,0
     try: line_index = int(request.POST['line_index'])
     except ValueError: pass
     try: record_index = int(request.POST['record_index'])
     except ValueError: pass
     return line_index, record_index
+
+def _get_instance(request, model, input_name):
+    if input_name in request.POST.keys():
+        pk = request.POST[input_name]
+    else: return None
+    try: return model.objects.get(pk = pk)
+    except model.DoesNotExists: return False
+    
+def handle_annotate_post(request): 
+    line_index, record_index = _get_indices(request)
+    names =  'ocr_transcription_pk,asr_transcription_pk,recording_pk'
+    names = names.split(',')
+    models = [Transcription,Transcription,Recording]
+    d = {}
+    for model,name in zip(models,names):
+        instance = _get_instance(request, model,name)
+        print(model,name,instance)
+        d[name] = instance
+    d['ocrline_index']=request.POST['ocrline_index']
+    print('annotation dict', d)
+    return line_index, record_index, d
     
     
