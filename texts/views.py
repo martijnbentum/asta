@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from . models import Recording, Transcription, Ocr, Asr, Annotation
+from . models import Recording, Transcription, Ocr, Asr, Annotation, AnnotationUserInfo
 from utils import align, select
 import random
 
@@ -21,6 +21,15 @@ def play(request,pk = 2):
     args = {'a':a,'o':o,'ocr':ocr,'post':post}
     return render(request, 'texts/play.html',args)
 
+def home(request):
+    args = {}
+    aui = get_annotation_user_info(request.user)
+    args['annotation_user_info'] = aui
+    return render(request, 'texts/home.html',args)
+
+def resume(request):
+    print('i am in resume view')
+    return redirect('texts:annotate',resume = 'true')
 
 def hello_world(request):
     return render(request, 'texts/hello_world.html')
@@ -51,21 +60,7 @@ def select_area(request):
             minimum_match = d['minimum_match'], perc_lines = d['perc_lines'])
     return render(request, 'texts/select_area.html', args)
 
-def annotate(request, location= '', location_type= '', exclude = 'None',
-    minimum_match = 35, perc_lines = 20, record_index = 0, line_index = 0):
-    print('request',request.user)
-    print('post',request.POST)
-    if request.POST:
-        line_index, record_index= handle_annotate_post(request)
-    args = {'location':location,'location_type':location_type,
-        'exclude':exclude,'minimum_match':minimum_match,
-        'perc_lines':perc_lines, 'record_index':record_index,
-        'line_index':line_index}
-    args = select.args_to_ocrline(args)
-    o = args['ocrline']
-    annotation = load_annotation(recording=o.recording,asr=o.align.asr,
-        ocrline_index= o.ocrline_index, user = request.user)
-    print('annotation',annotation)
+def _handle_annotation(annotation,args):
     if annotation:
         args['corrected_transcription'] = annotation.corrected_transcription
         args['alignment'] = annotation.alignment
@@ -74,6 +69,38 @@ def annotate(request, location= '', location_type= '', exclude = 'None',
         args['corrected_transcription'] = ''
         args['alignment'] = ''
         args['already_annotated'] = 'false'
+    return args
+
+
+def get_annotation_user_info(user):
+    try: user.annotationuserinfo
+    except AnnotationUserInfo.DoesNotExist:
+        aui = AnnotationUserInfo(user = user)
+        aui.save()
+    return user.annotationuserinfo
+
+def annotate(request, location= '', location_type= '', exclude = 'none',
+    minimum_match = 35, perc_lines = 20, record_index = 0, line_index = 0,
+    resume = 'false'):
+    print('request',request.user)
+    print('post',request.POST)
+    aui = get_annotation_user_info(request.user)
+    if request.POST:
+        line_index, record_index= handle_annotate_post(request)
+        location, location_type, resume = _get_info(request)
+        print(location,location_type, resume, 99999)
+    print('resume has this value in annotate view',resume)
+    args = {'location':location,'location_type':location_type,
+        'exclude':exclude,'minimum_match':minimum_match,
+        'perc_lines':perc_lines, 'record_index':record_index,
+        'line_index':line_index,'annotation_user_info':aui, 'resume':resume}
+    args = select.args_to_ocrline(args)
+    print('args',args)
+    o = args['ocrline']
+    annotation = load_annotation(recording=o.recording,asr=o.align.asr,
+        ocrline_index= o.ocrline_index, user = request.user)
+    print('annotation',annotation)
+    args = _handle_annotation(annotation,args)
     return render(request, 'texts/annotate.html',args)
 
 def _get_indices(request):
@@ -83,6 +110,15 @@ def _get_indices(request):
     try: record_index = int(request.POST['record_index'])
     except ValueError: pass
     return line_index, record_index
+
+def _get_info(request):
+    resume = 'false'
+    location, location_type = '',''
+    if 'resume' in request.POST.keys():
+        resume= request.POST['resume']
+        location = request.POST['location']
+        location_type = request.POST['location_type']
+    return location, location_type, resume
 
 def _get_instance(request, model, input_name):
     if input_name in request.POST.keys():
@@ -117,11 +153,12 @@ def make_annotation_load_dict(annotation_dict= None, recording=None, asr=None,
 def load_annotation(load_dict = None, recording = None, asr = None, ocrline_index = None,
     user = None):
     if load_dict == None:
+        print('loading with:',recording,asr,ocrline_index,user)
         load_dict = make_annotation_load_dict(recording =recording, asr= asr, 
             ocrline_index = ocrline_index, user = user)
     try:
         annotation = Annotation.objects.get(**load_dict)
-        print('loaded annotation', annotation)
+        print('loaded annotation', annotation, annotation.pk)
         return annotation
     except Annotation.DoesNotExist: 
         print('could not load annotation')
@@ -139,6 +176,7 @@ def load_make_annotation(annotation_dict):
         annotation.alignment = annotation_dict['alignment']
         annotation.corrected_transcription= annotation_dict['corrected_transcription']
         annotation.save()
+    annotation.add_ocrline_index_to_user_info()
     return annotation
         
     
