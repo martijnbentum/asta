@@ -139,7 +139,7 @@ def get_all_finished_recording_pks_from_all_users():
     output = []
     for aui in AnnotationUserInfo.objects.all():
         if aui.finished_pks: 
-            pks = aui.finished_pks.split(',')
+            pks = aui.get_finished_recording_pks
             pks = [pk for pk in pks if pk not in output]
             output.extend(pks)
     
@@ -154,19 +154,22 @@ def get_recordings_with_annotation_user_info(args):
         args['resume'] = 'false'
         print(args['resume'])
         pks = [x.pk for x in recordings]
-        try: args['record_index'] = pks.index(aui.current_recording.pk)
+        print(pks,args['record_index'],aui.current_recording,aui.current_recording.pk)
+        try: args['record_index'] = pks.index(aui.current_recording.pk) 
         except ValueError: pass
         else: args['line_index'] = aui.current_line_index 
     return recordings, args
 
-def filter_recordings_with_exclude(exclude, recordings):    
+def filter_recordings_with_exclude(args, recordings):    
+    aui = args['annotation_user_info']
+    exclude = args['exclude_recordings']
     if exclude == 'none': return recordings
     if exclude == 'annotated by me' and aui.finished_recording_pks:
-        finished_pks = aui.finished_recording_pks.split(',')
+        finished_pks = aui.get_finished_recording_pks
     elif exclude == 'annotated by anyone':
         finished_pks = get_all_finished_recording_pks_from_all_users()
-    print(exclude)
-    temp = [x for x in recordings if x.pk not in finished_recording_pks]
+    temp = [x for x in recordings if x.pk not in finished_pks]
+    print('exclude',exclude,finished_pks,len(temp),len(recordings))
     if temp: recordings = temp
     return recordings
 
@@ -182,7 +185,7 @@ def args_to_ocrline(args):
     start = time.time()
     print(args, delta(start))
     recordings, args = get_recordings_with_annotation_user_info(args)
-    recordings = filter_recordings_with_exclude(args['exclude'], recordings)
+    recordings = filter_recordings_with_exclude(args, recordings)
     recording = recordings[args['record_index']]
     mismatch = 100 - args['minimum_match']
     print('mismatch',mismatch,delta(start))
