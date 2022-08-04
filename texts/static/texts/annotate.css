@@ -1,3 +1,15 @@
+body {
+    overflow: hidden;
+}
+
+input {
+    width: 100%;
+}
+
+.table td {
+    text-align:center;
+}
+
 .title-parent {
     white-space:nowrap;
 }
@@ -10,7 +22,7 @@
     right: 10px;
 }
 
-.grey {
+.lightgrey {
     color:lightgrey;
 }
 
@@ -31,7 +43,7 @@
     color:grey;
 }
 
-.mismatch {
+.grey{
     color:grey;
 }
 
