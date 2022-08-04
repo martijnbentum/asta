@@ -39,11 +39,11 @@ def select_province(request):
     args = {'provinces':provinces}
     if request.method == 'POST':
         print(request.POST.keys())
-        for name in 'provinces,exclude,minimum_match,perc_lines'.split(','):
+        for name in 'provinces,exclude_recordings,minimum_match,perc_lines'.split(','):
             print(name,request.POST[name])
         d = request.POST
         return redirect('texts:annotate',location = d['provinces'], 
-            location_type = 'province',exclude = d['exclude'],
+            location_type = 'province',exclude_recordings = d['exclude_recordings'],
             minimum_match = d['minimum_match'], perc_lines = d['perc_lines'])
     return render(request, 'texts/select_province.html', args)
 
@@ -56,7 +56,7 @@ def select_area(request):
             print(name,request.POST[name])
         d = request.POST
         return redirect('texts:annotate',location = d['areas'], 
-            location_type = 'area',exclude = d['exclude'],
+            location_type = 'area',exclude_recordings = d['exclude'],
             minimum_match = d['minimum_match'], perc_lines = d['perc_lines'])
     return render(request, 'texts/select_area.html', args)
 
@@ -79,7 +79,7 @@ def get_annotation_user_info(user):
         aui.save()
     return user.annotationuserinfo
 
-def annotate(request, location= '', location_type= '', exclude = 'none',
+def annotate(request, location= '', location_type= '', exclude_recordings = 'none',
     minimum_match = 35, perc_lines = 20, record_index = 0, line_index = 0,
     resume = 'false'):
     print('request',request.user)
@@ -91,7 +91,7 @@ def annotate(request, location= '', location_type= '', exclude = 'none',
         print(location,location_type, resume, 99999)
     print('resume has this value in annotate view',resume)
     args = {'location':location,'location_type':location_type,
-        'exclude':exclude,'minimum_match':minimum_match,
+        'exclude_recordings':exclude_recordings,'minimum_match':minimum_match,
         'perc_lines':perc_lines, 'record_index':record_index,
         'line_index':line_index,'annotation_user_info':aui, 'resume':resume}
     args = select.args_to_ocrline(args)
