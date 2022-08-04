@@ -427,19 +427,27 @@ class Transcription(models.Model):
 class Annotation(models.Model):
     dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
     recording = models.ForeignKey(Recording, **dargs)
+    asr = models.ForeignKey(Asr, **dargs)
+    user= models.ForeignKey(User, **dargs)
     ocrline_index = models.PositiveIntegerField(null=True,blank=True) 
-    transcriptions= models.ManyToManyField(Transcription, blank=True)
-    asr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
-    ocr_transcription_pk = models.PositiveIntegerField(null=True,blank=True) 
     alignment= models.CharField(max_length=100,default='')
-    annotator= models.ForeignKey(User, **dargs)
+    corrected_transcription= models.CharField(max_length=300,default='')
     comments= models.TextField(default='')
 
     class Meta:
-        unique_together = [['ocr_transcription_pk','recording','annotator']]
+        unique_together = [['asr','recording','user','ocrline_index']]
 
     def __repr__(self):
-        return self.annotator.username
+        m = ''
+        if self.user:
+            m += 'username: ' + self.user.username + ' | ' 
+        m += self.alignment + ' ' + str(self.ocrline_index)
+        if self.corrected_transcription:
+            m += ' | corrected: ' + self.corrected_transcription
+        return m
+
+    def __str__(self):
+        return self.__repr__()
 
     @property
     def align(self):
@@ -449,3 +457,59 @@ class Annotation(models.Model):
     def ocr_line(self):
         return self.align.ocr_lines[self.ocr_line_index]
         
+
+class AnnotationUserInfo(models.Model):
+    dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
+    user = models.OneToOneField(User, on_delete = models.CASCADE, blank=True,null=True)
+    current_recording = models.ForeignKey(Recording, **dargs)
+    current_ocrline_index= models.PositiveIntegerField(null=True,blank=True) 
+    finished_recording_pks = models.TextField(default='')
+    finished_ocrline_incidices= models.TextField(default='')
+
+    def add_finished_recording_pk(self,recording):
+        if self.recording_annotated(recording): return
+        pk = str(recording.pk)
+        if self.finished_recording_pks: 
+            pk = ',' + pk
+        self.finished_recording_pks += pk 
+        self.save()
+
+    def recording_annotated(self,recording):
+        pks = self.finished_recording_pks.split(',')
+        pk = str(recording.pk)
+        return pk in pks
+
+    def add_finished_ocrline_index(self,recording,index):
+        if not self.finished_ocrline_incidices: d = {}
+        else: d = eval(self.finished_ocrline_incidices)
+        pk = str(recording.pk)
+        if pk not in d.keys(): d[pk] = str(index)
+        else: 
+            indices = d[pk].split(',')
+            if str(index) not in indices:
+                d[pk] += ',' + str(index)
+            else: return
+        self.finished_ocrline_incidices = str(d)
+        self.save()
+
+    @property
+    def recording_pk_to_ocrline_indices_dict(self):
+        if hasattr(self,'_rpk_ocrline_index_dict'): return self._rpk_ocrline_index_dict
+        if not self.finished_ocrline_incidices: return {}
+        d = eval(self.finished_ocrline_incidices)
+        output = {}
+        for key in d.keys():
+            output[int(key)] = list(map(int, d[key].split(',')))
+        self._rpk_ocrline_index_dict = output
+        return output
+
+    def recording_pk_to_finished_ocrline_indices(self,recording):
+        d = self.recording_pk_to_ocrline_indices_dict
+        if not d: return []
+        if recording.pk not in d.keys(): return []
+        else: return d[recording.pk]
+    
+            
+    
+    
+
