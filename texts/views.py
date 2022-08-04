@@ -1,7 +1,25 @@
 from django.shortcuts import render, redirect
-from . models import Recording, Transcription, Ocr, Asr
+from . models import Recording, Transcription, Ocr, Asr, Annotation
 from utils import align, select
 import random
+
+def play(request,pk = 2):
+    post = request.method 
+    if request.method == 'POST':
+        if 'quality' in request.POST.keys():
+            print('quality',request.POST['quality'])
+        else:print(request.POST.keys(),'quality not found')
+    if pk:
+        recording = Recording.objects.get(pk = pk)
+    else: 
+        recordings = Recording.objects.filter(ocr_transcription_available=True)
+        recording = random.sample(list(recordings),1)[0]
+    a = align.Align(recording)
+    if not hasattr(a,'ocr_lines'): o = ''
+    else: o = random.sample(a.filter_ocr_lines(),1)[0]
+    ocr = recording.ocrs[0]
+    args = {'a':a,'o':o,'ocr':ocr,'post':post}
+    return render(request, 'texts/play.html',args)
 
 
 def hello_world(request):
@@ -35,35 +53,28 @@ def select_area(request):
 
 def annotate(request, location= '', location_type= '', exclude = 'None',
     minimum_match = 35, perc_lines = 20, record_index = 0, line_index = 0):
-    print('request',request)
+    print('request',request.user)
     print('post',request.POST)
     if request.POST:
-        line_index, record_index, annotation_dict = handle_annotate_post(request)
+        line_index, record_index= handle_annotate_post(request)
     args = {'location':location,'location_type':location_type,
         'exclude':exclude,'minimum_match':minimum_match,
         'perc_lines':perc_lines, 'record_index':record_index,
         'line_index':line_index}
     args = select.args_to_ocrline(args)
+    o = args['ocrline']
+    annotation = load_annotation(recording=o.recording,asr=o.align.asr,
+        ocrline_index= o.ocrline_index, user = request.user)
+    print('annotation',annotation)
+    if annotation:
+        args['corrected_transcription'] = annotation.corrected_transcription
+        args['alignment'] = annotation.alignment
+        args['already_annotated'] = 'true'
+    else:
+        args['corrected_transcription'] = ''
+        args['alignment'] = ''
+        args['already_annotated'] = 'false'
     return render(request, 'texts/annotate.html',args)
-
-def play(request,pk = 2):
-    post = request.method 
-    if request.method == 'POST':
-        if 'quality' in request.POST.keys():
-            print('quality',request.POST['quality'])
-        else:print(request.POST.keys(),'quality not found')
-    if pk:
-        recording = Recording.objects.get(pk = pk)
-    else: 
-        recordings = Recording.objects.filter(ocr_transcription_available=True)
-        recording = random.sample(list(recordings),1)[0]
-    a = align.Align(recording)
-    if not hasattr(a,'ocr_lines'): o = ''
-    else: o = random.sample(a.filter_ocr_lines(),1)[0]
-    ocr = recording.ocrs[0]
-    args = {'a':a,'o':o,'ocr':ocr,'post':post}
-    return render(request, 'texts/play.html',args)
-
 
 def _get_indices(request):
     line_index, record_index= 0,0
@@ -78,20 +89,76 @@ def _get_instance(request, model, input_name):
         pk = request.POST[input_name]
     else: return None
     try: return model.objects.get(pk = pk)
-    except model.DoesNotExists: return False
+    except model.DoesNotExists: return None
+
+def request_to_annotation_dict(request):
+    d = {}
+    d['recording'] = _get_instance(request,Recording,'recording_pk')
+    d['asr'] = _get_instance(request,Asr,'asr_pk')
+    d['ocrline_index'] = None
+    try: d['ocrline_index']=int(request.POST['ocrline_index'])
+    except ValueError: pass
+    d['user'] = request.user
+    d['alignment'] = request.POST['quality']
+    d['corrected_transcription'] = request.POST['corrected_transcription']
+    print('annotation dict', d)
+    return d
+
+def make_annotation_load_dict(annotation_dict= None, recording=None, asr=None, 
+    ocrline_index = None, user = None):
+    d = {}
+    if annotation_dict == None:
+        d = {'recording':recording, 'asr':asr, 'ocrline_index':ocrline_index,'user':user}
+    else:
+        for name in 'recording,asr,ocrline_index,user'.split(','):
+            d[name] = annotation_dict[name]
+    return d
+
+def load_annotation(load_dict = None, recording = None, asr = None, ocrline_index = None,
+    user = None):
+    if load_dict == None:
+        load_dict = make_annotation_load_dict(recording =recording, asr= asr, 
+            ocrline_index = ocrline_index, user = user)
+    try:
+        annotation = Annotation.objects.get(**load_dict)
+        print('loaded annotation', annotation)
+        return annotation
+    except Annotation.DoesNotExist: 
+        print('could not load annotation')
+        return None
+    
+
+def load_make_annotation(annotation_dict):
+    load_dict = make_annotation_load_dict(annotation_dict = annotation_dict)
+    annotation = load_annotation(load_dict = load_dict)
+    if not annotation:
+        annotation = Annotation(**annotation_dict)
+        annotation.save()
+        print('made annotation:', annotation)
+    else:
+        annotation.alignment = annotation_dict['alignment']
+        annotation.corrected_transcription= annotation_dict['corrected_transcription']
+        annotation.save()
+    return annotation
+        
     
 def handle_annotate_post(request): 
     line_index, record_index = _get_indices(request)
-    names =  'ocr_transcription_pk,asr_transcription_pk,recording_pk'
-    names = names.split(',')
-    models = [Transcription,Transcription,Recording]
-    d = {}
-    for model,name in zip(models,names):
-        instance = _get_instance(request, model,name)
-        print(model,name,instance)
-        d[name] = instance
-    d['ocrline_index']=request.POST['ocrline_index']
-    print('annotation dict', d)
-    return line_index, record_index, d
+    prev_next= request.POST['prev_next']
+    print('prev_next',prev_next, line_index, record_index)
+    if prev_next == 'previous':
+        if line_index == 1:
+            print('going back a recording')
+            record_index -= 1 
+        else: 
+            line_index -= 2
+            print('going back a transcription')
+    if prev_next == 'none':
+        print('prev_next',prev_next, line_index, record_index)
+        annotation_dict = request_to_annotation_dict(request)
+        print('annotation dict ---', annotation_dict)
+        annotation = load_make_annotation(annotation_dict)
+        print('annotation',annotation, annotation.__dict__)
+    return line_index, record_index 
     
     
