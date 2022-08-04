@@ -21,7 +21,8 @@
             <small class="lightgrey">
                 ({{ocrline.align.recording.province.name}} | 
                 {{ocrline.align.recording.area}} |
-                {{ocrline.align.recording.duration_str}})
+                {{ocrline.align.recording.duration_str}} |
+                {{ocrline.align.recording.pk}})
             </small>
         </h4>
     </div>
@@ -154,6 +155,21 @@
         name="ocrline_index" 
         id="ocrline_index" 
         value = "{{ocrline.ocrline_index}}">
+    <input 
+        type="hidden" 
+        name="resume" 
+        id="resume" 
+        value = "{{resume}}">
+    <input 
+        type="hidden" 
+        name="location" 
+        id="location" 
+        value = "{{location}}">
+    <input 
+        type="hidden" 
+        name="location_type" 
+        id="location_type" 
+        value = "{{location_type}}">
     <input
         type="hidden"
         name="prev_next"
@@ -176,6 +192,7 @@ ASR: {{ocrline.asr_align_text}}
 </p>
 
 <br><br>
+{{ocrline.ocrline_index}}
 <br><br>
 <p class="lightgrey small">
 start
