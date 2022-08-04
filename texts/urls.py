@@ -4,7 +4,7 @@ from . import views
 app_name = 'texts'
 
 annotate_url ='annotate/<str:location>/<str:location_type>/'
-annotate_url += '<str:exclude>/<int:minimum_match>/<int:perc_lines>/'
+annotate_url += '<str:exclude_recordings>/<int:minimum_match>/<int:perc_lines>/'
 
 urlpatterns = [
 	# path('',views.hello_world,name='hello_world'),
