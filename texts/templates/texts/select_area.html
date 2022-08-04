@@ -26,7 +26,26 @@
                 Exclude recordings
             </td>
             <td class="col-4">
-                <select name="exclude" id="exclude">
+                <select name="exclude_recordings" id="exclude_recordings">
+                    <option value="none">
+                        None
+                    </option>
+                    <option value="annotated by anyone">
+                        Annotated by anyone
+                    </option>
+                    <option value="annotated by me">
+                        Annotated by me
+                    </option>
+                </select>
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Exclude transcriptions
+            </td>
+            <td class="col-4">
+                <select name="exclude_transcriptions" id="exclude_transcriptions">
                     <option value="none">
                         None
                     </option>
