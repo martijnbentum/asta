@@ -13,5 +13,8 @@ urlpatterns = [
 	path('select_province/',views.select_province,name='select_province'),
 	path('select_area/',views.select_area,name='select_area'),
 	path('annotate/',views.annotate,name='annotate'),
+	path('annotate/<str:resume>',views.annotate,name='annotate'),
+	path('home/',views.home,name='home'),
+	path('resume/',views.resume,name='resume'),
 	path(annotate_url,views.annotate,name='annotate'),
 ]
