@@ -430,7 +430,7 @@ class Annotation(models.Model):
     asr = models.ForeignKey(Asr, **dargs)
     user= models.ForeignKey(User, **dargs)
     ocrline_index = models.PositiveIntegerField(null=True,blank=True) 
-    alignment= models.CharField(max_length=100,default='')
+    alignment= models.CharField(max_length=100,default='') 
     corrected_transcription= models.CharField(max_length=300,default='')
     comments= models.TextField(default='')
 
@@ -441,7 +441,9 @@ class Annotation(models.Model):
         m = ''
         if self.user:
             m += 'username: ' + self.user.username + ' | ' 
-        m += self.alignment + ' ' + str(self.ocrline_index)
+        m += 'alignment: ' + self.alignment 
+        m += ' ocrline index:' + str(self.ocrline_index)
+        m += ' recording pk:' + str(self.recording.pk)
         if self.corrected_transcription:
             m += ' | corrected: ' + self.corrected_transcription
         return m
@@ -455,14 +457,23 @@ class Annotation(models.Model):
 
     @property
     def ocr_line(self):
-        return self.align.ocr_lines[self.ocr_line_index]
+        return self.align.ocr_lines[self.ocrline_index]
+
+    def add_ocrline_index_to_user_info(self):
+        if self.user and self.recording and type(self.ocrline_index) == int:
+            recording, index = self.recording, self.ocrline_index
+            self.user.annotationuserinfo.add_finished_ocrline_index(recording,index)
+            
+
         
 
 class AnnotationUserInfo(models.Model):
     dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
     user = models.OneToOneField(User, on_delete = models.CASCADE, blank=True,null=True)
     current_recording = models.ForeignKey(Recording, **dargs)
-    current_ocrline_index= models.PositiveIntegerField(null=True,blank=True) 
+    current_location= models.CharField(max_length=100,default='')
+    current_location_type= models.CharField(max_length=100,default='')
+    current_line_index= models.PositiveIntegerField(null=True,blank=True) 
     finished_recording_pks = models.TextField(default='')
     finished_ocrline_incidices= models.TextField(default='')
 
@@ -509,7 +520,22 @@ class AnnotationUserInfo(models.Model):
         if recording.pk not in d.keys(): return []
         else: return d[recording.pk]
     
+    @property
+    def can_continue(self):
+        if self.current_recording: return True
+        else: return False
             
+    @property
+    def n_recordings_annotated(self):
+        if not self.finished_recording_pks: return 0
+        return len(self.finished_recording_pks.split(',')) 
+
+    @property
+    def n_transcriptions_annotated(self):
+        n = 0
+        for indices in self.recording_pk_to_ocrline_indices_dict.values():
+            n += len(indices)
+        return n
     
     
 
