@@ -10,12 +10,15 @@
 {{ocrline.start_time|json_script:'start-time'}}
 {{ocrline.end_time|json_script:'end-time'}}
 {{ocrline.align.recording.web_wav|json_script:'web-wav'}}
+{{alignment|json_script:'alignment'}}
+{{already_annotated|json_script:'already-annotated'}}
+{{nocrlines|json_script:'nocrlines'}}
 
 <div class="title-parent">
     <div class="title-child">
         <h4>
             {{ocrline.align.recording.name}}
-            <small class="grey">
+            <small class="lightgrey">
                 ({{ocrline.align.recording.province.name}} | 
                 {{ocrline.align.recording.area}} |
                 {{ocrline.align.recording.duration_str}})
@@ -24,12 +27,12 @@
     </div>
     <div class="title-child right">
         <p>
-            <a class="btn btn-link" onclick="play()">
-                <i class="fa fa-angle-left"></i>
+            <a class="btn btn-link" onclick="previous()">
+                <i id = 'previous' class="fa fa-angle-left"></i>
             </a>
             {{line_index}} / {{nocrlines}}
-            <a class="btn btn-link" onclick="play()">
-                <i class="fa fa-angle-right"></i>
+            <a class="btn btn-link" onclick="next()">
+                <i id = 'next' class="fa fa-angle-right"></i>
             </a>
         </p>
     </div>
@@ -54,41 +57,67 @@
 	your browser does not support the audio element
 </audio>
 
-<form method='post'>
+<form id="form" method='post'>
 	{% csrf_token %}
+    <p>
+        <label class="grey" for="corrected_transcription">
+            Corrected transcription:
+        </label>
+    </p> 
+    <input 
+        type="text" 
+        id="corrected_transcription" 
+        name="corrected_transcription"
+        value="{{corrected_transcription}}"
+    >
+    <br><br><br><br>
+
 	<table class="table table-borderless table-sm">
 		<tr class="d-flex">
 			<td class="col-2">
 				<button 
-					class="btn btn-danger"
+                    id="bad"
+					class="btn"
 					type='submit' onclick="set_quality('bad')" 
 					value="bad"><b>b</b>ad
 				</button>
 			</td>
-			<td class="col-3">
+			<td class="col-2">
 				<button 
-					class="btn btn-warning"
+                    id="start_match"
+					class="btn"
 					type='submit' onclick="set_quality('start_match')" 
 					value="start"><b>s</b>tart match
 				</button>
 			</td>
-			<td class="col-3">
+			<td class="col-2">
 				<button 
-					class="btn btn-warning"
+                    id="middle_match"
+					class="btn"
 					type='submit' onclick="set_quality('middle_match')" 
 					value="middle"><b>m</b>iddle match
 				</button>
 			</td>
-			<td class="col-3">
+			<td class="col-2">
 				<button 
-					class="btn btn-warning"
+                    id="middle_mismatch"
+					class="btn"
+					type='submit' onclick="set_quality('middle_mismatch')" 
+					value="middle">m<b>i</b>ddle mismatch
+				</button>
+			</td>
+			<td class="col-2">
+				<button 
+                    id="end_match"
+					class="btn"
 					type='submit' onclick="set_quality('end_match')" 
 					value="end"><b>e</b>nd match
 				</button>
 			</td>
 			<td class="col-2">
 				<button 
-					class="btn btn-success"
+                    id="good"
+					class="btn"
 					type='submit' onclick="set_quality('good')" 
 					value="good"><b>g</b>ood
 				</button>
@@ -99,7 +128,7 @@
         type="hidden" 
         name="quality" 
         id="quality" 
-        value = "">
+        value = "{{alignment}}">
     <input 
         type="hidden" 
         name="line_index" 
@@ -112,24 +141,24 @@
         value = "{{record_index}}">
     <input 
         type="hidden" 
-        name="asr_transcription_pk" 
-        id="asr_transcription_pk" 
-        value = "{{ocrline.align.asr_transcription.pk}}">
-    <input 
-        type="hidden" 
-        name="ocr_transcription_pk" 
-        id="ocr_transcription_pk" 
-        value = "{{ocrline.transcription.pk}}">
-    <input 
-        type="hidden" 
-        name="ocrline_index" 
-        id="ocrline_index" 
-        value = "{{ocrline.ocrline_index}}">
+        name="asr_pk" 
+        id="asr_pk" 
+        value = "{{ocrline.align.asr.pk}}">
     <input 
         type="hidden" 
         name="recording_pk" 
         id="recording_pk" 
         value = "{{ocrline.recording.pk}}">
+    <input 
+        type="hidden" 
+        name="ocrline_index" 
+        id="ocrline_index" 
+        value = "{{ocrline.ocrline_index}}">
+    <input
+        type="hidden"
+        name="prev_next"
+        id="prev_next"
+        value="none">
 </form>
 
 <br>
@@ -142,13 +171,13 @@ OCR: {{ocrline.ocr_align_text}}
 <p class='align'>
 ASR: {{ocrline.asr_align_text}}
 </p>
-<p class='right mismatch'>
-<small class="grey">Align match: </small>{{ocrline.align_match}}
+<p class='right grey'>
+<small class="lightgrey">Align match: </small>{{ocrline.align_match}}
 </p>
 
 <br><br>
 <br><br>
-<p class="grey small">
+<p class="lightgrey small">
 start
 {{location}}
 {{location_type}}
