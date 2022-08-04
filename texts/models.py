@@ -504,7 +504,7 @@ class AnnotationUserInfo(models.Model):
         self.save()
 
     @property
-    def recording_pk_to_ocrline_indices_dict(self):
+    def get_recording_pk_to_ocrline_indices_dict(self):
         if hasattr(self,'_rpk_ocrline_index_dict'): return self._rpk_ocrline_index_dict
         if not self.finished_ocrline_incidices: return {}
         d = eval(self.finished_ocrline_incidices)
@@ -514,8 +514,8 @@ class AnnotationUserInfo(models.Model):
         self._rpk_ocrline_index_dict = output
         return output
 
-    def recording_pk_to_finished_ocrline_indices(self,recording):
-        d = self.recording_pk_to_ocrline_indices_dict
+    def recording_to_finished_ocrline_indices(self,recording):
+        d = self.get_recording_pk_to_ocrline_indices_dict
         if not d: return []
         if recording.pk not in d.keys(): return []
         else: return d[recording.pk]
@@ -533,9 +533,15 @@ class AnnotationUserInfo(models.Model):
     @property
     def n_transcriptions_annotated(self):
         n = 0
-        for indices in self.recording_pk_to_ocrline_indices_dict.values():
+        for indices in self.get_recording_pk_to_ocrline_indices_dict.values():
             n += len(indices)
         return n
+
+    @property
+    def get_finished_recording_pks(self):
+        if not self.finished_recording_pks: return []
+        pks = self.finished_recording_pks.split(',')
+        return list(map(int, pks))
     
     
 
