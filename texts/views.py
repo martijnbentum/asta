@@ -167,17 +167,17 @@ def load_annotation(load_dict = None, recording = None, asr = None, ocrline_inde
 
 def load_make_annotation(annotation_dict):
     load_dict = make_annotation_load_dict(annotation_dict = annotation_dict)
-    annotation = load_annotation(load_dict = load_dict)
-    if not annotation:
-        annotation = Annotation(**annotation_dict)
-        annotation.save()
-        print('made annotation:', annotation)
+    a = load_annotation(load_dict = load_dict)
+    if not a:
+        a= Annotation(**annotation_dict)
+        a.save()
+        print('made annotation:', a)
     else:
-        annotation.alignment = annotation_dict['alignment']
-        annotation.corrected_transcription= annotation_dict['corrected_transcription']
-        annotation.save()
-    annotation.add_ocrline_index_to_user_info()
-    return annotation
+        a.alignment = annotation_dict['alignment']
+        a.corrected_transcription= annotation_dict['corrected_transcription']
+        a.save()
+    a.add_ocrline_index_to_user_info()
+    return a
         
     
 def handle_annotate_post(request): 
@@ -188,6 +188,7 @@ def handle_annotate_post(request):
         if line_index == 1:
             print('going back a recording')
             record_index -= 1 
+            line_index = -1
         else: 
             line_index -= 2
             print('going back a transcription')
