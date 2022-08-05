@@ -1,7 +1,7 @@
 from texts.models import Recording, AnnotationUserInfo
 from collections import Counter
 from utils import align
-import random
+import numpy as np
 import time
 
 
@@ -114,8 +114,11 @@ def sample_ocr_lines(align, min_lines = 30, max_lines=100, perc_lines = 20,
     if n < min_lines: n = min_lines
     if n > max_lines: n = max_lines
     if len(ols) <= n: return ols
-    output = [ols.pop(0),ols.pop(int(len(ols)/2)), ols.pop(-1)]
-    output += random.sample(ols,n-3)
+    output = []
+    start, end = 0, len(ols) -1
+    indices = np.linspace(start,end,n,dtype = int)
+    for index in indices:
+        output.append(ols[index])
     return output
 
     
@@ -191,6 +194,7 @@ def args_to_ocrline(args):
     print('mismatch',mismatch,delta(start))
     ocr_lines = sample_ocr_lines(recording.align, 
         maximum_align_mismatch = mismatch,perc_lines = args['perc_lines'])
+    if args['line_index'] < 0: args['line_index'] = len(ocr_lines) -1
     print('n ocr lines',len(ocr_lines),delta(start))
     if args['line_index'] >= len(ocr_lines) or len(ocr_lines) == 0: 
         print(recording)
