@@ -10,6 +10,16 @@ input {
     text-align:center;
 }
 
+.clamp-styling {
+    display: -webkit-box;
+    webkit-line-clamp: 12; 
+    webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 3em;
+    height: 12em;
+    background-color:#f0f0ed;
+}
+
 .title-parent {
     white-space:nowrap;
 }
