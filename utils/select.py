@@ -141,10 +141,11 @@ def get_recordings_with_location_info(args):
 def get_all_finished_recording_pks_from_all_users():
     output = []
     for aui in AnnotationUserInfo.objects.all():
-        if aui.finished_pks: 
+        if aui.finished_recording_pks: 
             pks = aui.get_finished_recording_pks
             pks = [pk for pk in pks if pk not in output]
             output.extend(pks)
+    return output
     
 def get_recordings_with_annotation_user_info(args):
     aui = args['annotation_user_info']
