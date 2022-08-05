@@ -462,14 +462,16 @@ class Annotation(models.Model):
     def add_ocrline_index_to_user_info(self):
         if self.user and self.recording and type(self.ocrline_index) == int:
             recording, index = self.recording, self.ocrline_index
-            self.user.annotationuserinfo.add_finished_ocrline_index(recording,index)
+            self.user.annotationuserinfo.add_finished_ocrline_index(recording,
+                index)
             
 
         
 
 class AnnotationUserInfo(models.Model):
     dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
-    user = models.OneToOneField(User, on_delete = models.CASCADE, blank=True,null=True)
+    user = models.OneToOneField(User, on_delete = models.CASCADE, 
+        blank=True,null=True)
     current_recording = models.ForeignKey(Recording, **dargs)
     current_location= models.CharField(max_length=100,default='')
     current_location_type= models.CharField(max_length=100,default='')
@@ -505,7 +507,8 @@ class AnnotationUserInfo(models.Model):
 
     @property
     def get_recording_pk_to_ocrline_indices_dict(self):
-        if hasattr(self,'_rpk_ocrline_index_dict'): return self._rpk_ocrline_index_dict
+        if hasattr(self,'_rpk_ocrline_index_dict'): 
+            return self._rpk_ocrline_index_dict
         if not self.finished_ocrline_incidices: return {}
         d = eval(self.finished_ocrline_incidices)
         output = {}
