@@ -16,6 +16,7 @@ urlpatterns = [
 	path('annotate/',views.annotate,name='annotate'),
 	path('annotate/<str:resume>',views.annotate,name='annotate'),
 	path('home/',views.home,name='home'),
+	path('help/',views.help,name='help'),
 	path('resume/',views.resume,name='resume'),
 	path(annotate_url,views.annotate,name='annotate'),
 ]
