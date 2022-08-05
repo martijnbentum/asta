@@ -63,7 +63,7 @@
 	{% csrf_token %}
     <p>
         <label class="grey" for="corrected_transcription">
-            Corrected transcription:
+            Corrected transcription: 
         </label>
     </p> 
     <input 
@@ -72,7 +72,12 @@
         name="corrected_transcription"
         value="{{corrected_transcription}}"
     >
-    <br><br><br><br>
+    <p class="lightgrey"><small>
+    Do not alter spelling of transcribed words, 
+    use copy / paste and remove words not present in the audio recording.
+    </small>
+    </p>
+    <br><br>
 
 	<table class="table table-borderless table-sm">
 		<tr class="d-flex">
