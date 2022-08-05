@@ -3,6 +3,12 @@
 {% block content %}
 
 <a
+    id="help"
+    href="{% url 'texts:help'%}"
+    class="btn btn-outline-primary">
+        help
+</a>
+<a
     id="annotate_by_province"
     href="{% url 'texts:select_province'%}"
     class="btn btn-outline-secondary">
