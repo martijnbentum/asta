@@ -23,7 +23,7 @@ function handle_keypress(key) {
 	var audio = document.getElementById('audio');
     if (audio.paused) {
         console.log('audio not playing')
-        if (key == 'p' || key == ' ') {
+        if (key == ' ') {
             console.log('playing audio')
             play()
         }
