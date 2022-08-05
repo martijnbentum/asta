@@ -27,6 +27,9 @@ def home(request):
     args['annotation_user_info'] = aui
     return render(request, 'texts/home.html',args)
 
+def help(request):
+    return render(request, 'texts/help.html')
+
 def resume(request):
     print('i am in resume view')
     return redirect('texts:annotate',resume = 'true')
