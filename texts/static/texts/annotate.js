@@ -8,6 +8,53 @@ var nocrlines=JSON.parse(document.getElementById('nocrlines').textContent);
 console.log(start_time,end_time,alignment)
 var form= document.getElementById('form')
 
+document.onkeyup = function (e) {
+    console.log(e.which,e.code,e)
+    handle_keypress(e.key)
+}
+
+function handle_keypress(key) {
+    console.log('handling:',key)
+	var textbox = document.getElementById('corrected_transcription');
+    if (document.activeElement === textbox) {
+        console.log('typing:',key,'in textbox; ignoring commands')
+        return
+    }
+	var audio = document.getElementById('audio');
+    if (audio.paused) {
+        console.log('audio not playing')
+        if (key == 'p' || key == ' ') {
+            console.log('playing audio')
+            play()
+        }
+    }
+    if (key == 'b') {
+        document.getElementById('bad').click();
+    }
+    if (key == 's') {
+        document.getElementById('start_match').click();
+    }
+    if (key == 'm') {
+        document.getElementById('middle_match').click();
+    }
+    if (key == 'i') {
+        document.getElementById('middle_mismatch').click();
+    }
+    if (key == 'e') {
+        document.getElementById('end_match').click();
+    }
+    if (key == 'g') {
+        document.getElementById('good').click();
+    }
+    if (key == 'p') {
+        document.getElementById('previous').click();
+    }
+    if (key == 'n') {
+        document.getElementById('next').click();
+    }
+
+}
+
 function play() {
 	var audio = document.getElementById('audio');
 	audio.currentTime = start_time;
