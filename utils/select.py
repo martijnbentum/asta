@@ -104,7 +104,7 @@ def get_ocr_line(align, location = 'first', maximum_align_mismatch = 55,
     if location == 'last': n = -1
     return ols[n]
         
-def sample_ocr_lines(align, min_lines = 30, max_lines=100, perc_lines = 20,
+def sample_ocr_lines(align, min_lines = 30, max_lines=60, perc_lines = 20,
     maximum_align_mismatch = 55, exclude_indices = []):
     ols=align.filter_ocr_lines(mismatch_threshold = maximum_align_mismatch)
     if len(ols) == 0: return []
@@ -138,11 +138,11 @@ def get_recordings_with_location_info(args):
         recordings = get_recordings_with_province_list([args['location']])
     return recordings
 
-def get_all_finished_recording_pks_from_all_users():
+def get_all_finished_recording_pks_from_all_users(args):
     output = []
     for aui in AnnotationUserInfo.objects.all():
         if aui.finished_recording_pks: 
-            pks = aui.get_finished_recording_pks
+            pks = aui.get_finished_recording_pks(args['session_key'])
             pks = [pk for pk in pks if pk not in output]
             output.extend(pks)
     return output
@@ -169,19 +169,26 @@ def filter_recordings_with_exclude_recording(args, recordings):
     aui = args['annotation_user_info']
     exclude = args['exclude_recordings']
     if exclude == 'none': return recordings
-    if exclude == 'annotated by me' and aui.finished_recording_pks:
-        finished_pks = aui.get_finished_recording_pks
+    if exclude == 'annotated by me': 
+        print('exclude with annotated by me')
+        finished_pks = aui.get_finished_recording_pks(args['session_key'])
     elif exclude == 'annotated by anyone':
-        finished_pks = get_all_finished_recording_pks_from_all_users()
+        print('exclude with annotated by anyone')
+        finished_pks = get_all_finished_recording_pks_from_all_users(args)
+    else: raise ValueError(exclude, 'unknown value')
     temp = [x for x in recordings if x.pk not in finished_pks]
     print('exclude',exclude,finished_pks,len(temp),len(recordings))
     if temp: recordings = temp
     return recordings
 
-def get_exclude_indices_based_on_all_users(recording):
+def get_exclude_indices_based_on_all_users(recording,args):
     exclude_indices= []
     for aui in AnnotationUserInfo.objects.all():
-            indices = aui.recording_to_finished_ocrline_indices(recording)
+            if aui == args['annotation_user_info']:
+                sk = args['session_key']
+                indices = aui.recording_to_finished_ocrline_indices(recording,sk)
+            else:
+                indices = aui.recording_to_finished_ocrline_indices(recording)
             if indices:
                 exclude_indices.extend(indices)
     return exclude_indices
@@ -192,9 +199,10 @@ def make_exclude_indices_with_exclude_transcriptions(args,recording):
     indices = []
     if exclude == 'none': pass
     elif exclude == 'annotated by me' and aui.finished_recording_pks:
-        indices = aui.recording_to_finished_ocrline_indices(recording)
+        sk = args['session_key']
+        indices = aui.recording_to_finished_ocrline_indices(recording,sk)
     elif exclude == 'annotated by anyone':
-        indices = get_exclude_indices_based_on_all_users(recording)
+        indices = get_exclude_indices_based_on_all_users(recording,args)
     return indices
 
 def _update_annotation_user_info(args,recording):
@@ -222,10 +230,12 @@ def args_to_ocrline(args):
     if args['line_index'] < 0: args['line_index'] = len(ocr_lines) -1
     print('n ocr lines',len(ocr_lines),delta(start))
     if args['line_index'] >= len(ocr_lines) or len(ocr_lines) == 0: 
-        print(recording)
+        print(recording, recordings)
         args['annotation_user_info'].add_finished_recording_pk(recording)
         args['record_index'] +=1
-        if args['record_index'] >= recordings.count(): 
+        if type(recordings) ==list: n_recordings = len(recordings) 
+        else: n_recordings = recordings.count()
+        if args['record_index'] >= n_recordings: 
             return 'done with all recordings'
         args['line_index'] = 0
         return args_to_ocrline(args)
