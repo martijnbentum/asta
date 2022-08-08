@@ -9,7 +9,7 @@ annotate_url += '<str:exclude_transcriptions>/'
 
 urlpatterns = [
 	# path('',views.hello_world,name='hello_world'),
-	path('',views.play,name='play'),
+	path('',views.home,name='home'),
 	path('play/',views.play,name='play'),
 	path('select_province/',views.select_province,name='select_province'),
 	path('select_area/',views.select_area,name='select_area'),
