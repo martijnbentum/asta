@@ -474,10 +474,15 @@ class AnnotationUserInfo(models.Model):
     current_recording = models.ForeignKey(Recording, **dargs)
     current_location= models.CharField(max_length=100,default='')
     current_location_type= models.CharField(max_length=100,default='')
+    exclude_recordings= models.CharField(max_length=100,default='')
+    exclude_transcriptions= models.CharField(max_length=100,default='')
+    perc_lines= models.PositiveIntegerField(null=True,blank=True) 
+    minimum_match= models.PositiveIntegerField(null=True,blank=True) 
     current_line_index= models.PositiveIntegerField(null=True,blank=True) 
     finished_recording_pks = models.TextField(default='')
     finished_ocrline_incidices = models.TextField(default='')
     session_ocrlines_indices_dict = models.TextField(default='') 
+    session_recording_pks = models.TextField(default='') 
     session_key = models.CharField(max_length=100,default='')
 
     def add_finished_recording_pk(self,recording):
@@ -515,23 +520,25 @@ class AnnotationUserInfo(models.Model):
 
     @property
     def get_recording_pk_to_ocrline_indices_dict(self):
+        print('using general dict')
         if not self.finished_ocrline_incidices: return {}
         return self._make_indices_dict(self.finished_ocrline_incidices)
 
     @property
     def get_sesion_ocrline_indices_dict(self):
+        print('using session dict')
         if not self.session_ocrlines_indices_dict: return {}
         return self._make_indices_dict(self.session_ocrlines_indices_dict)
 
-    def set_finished_ocrline_indices(self, session_key):
-        d =  self.get_recording_pk_to_ocrline_indices_dict
-        self.session_ocrlines_indices_dict = d
+    def set_session(self, session_key):
+        self.session_ocrlines_indices_dict = self.finished_ocrline_incidices
+        self.session_recording_pks = self.finished_recording_pks
         self.session_key = session_key
         self.save()
 
 
-    def recording_to_finished_ocrline_indices(self,recording, key = ''):
-        if key and key == self.session_key:
+    def recording_to_finished_ocrline_indices(self,recording,session_key = ''):
+        if session_key and session_key== self.session_key:
             d = self.get_sesion_ocrline_indices_dict
         else:
             d = self.get_recording_pk_to_ocrline_indices_dict
@@ -556,10 +563,13 @@ class AnnotationUserInfo(models.Model):
             n += len(indices)
         return n
 
-    @property
-    def get_finished_recording_pks(self):
-        if not self.finished_recording_pks: return []
-        pks = self.finished_recording_pks.split(',')
+    def get_finished_recording_pks(self,session_key = ''):
+        if session_key and session_key== self.session_key:
+            if not self.session_recording_pks: pks = []
+            else: pks = self.session_recording_pks.split(',')
+        else:
+            if not self.finished_recording_pks: pks = []
+            else: pks = self.finished_recording_pks.split(',')
         return list(map(int, pks))
     
     
