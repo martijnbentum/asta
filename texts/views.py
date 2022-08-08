@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
-from . models import Recording, Transcription, Ocr, Asr, Annotation, AnnotationUserInfo
+from . models import Recording, Transcription, Ocr, Asr, Annotation 
+from . models import AnnotationUserInfo
 from utils import align, select
-import random
+import random, string
 
 
 def home(request):
@@ -15,10 +16,29 @@ def help(request):
 
 def resume(request):
     print('i am in resume view')
-    return redirect('texts:annotate',resume = 'true')
+    aui = get_annotation_user_info(request.user)
+    print('i am in resume view',aui.exclude_recordings,
+        aui.exclude_transcriptions,aui.perc_lines, 
+        aui.minimum_match, aui.session_key)
+    return redirect('texts:annotate',
+        resume = 'true',
+        exclude_recordings = aui.exclude_recordings,
+        exclude_transcriptions = aui.exclude_transcriptions,
+        perc_lines = aui.perc_lines,
+        minimum_match= aui.minimum_match,
+        session_key = aui.session_key)
+    
 
 def hello_world(request):
     return render(request, 'texts/hello_world.html')
+
+def update_annotion_user_info(aui, d):
+    session_key = "".join(random.sample(string.ascii_lowercase, 21))
+    aui.exclude_recordings = d['exclude_recordings']
+    aui.exclude_transcriptions= d['exclude_transcriptions']
+    aui.perc_lines = d['perc_lines']
+    aui.minimum_match = d['minimum_match']
+    aui.set_session(session_key)
 
 def select_province(request):
     provinces = select.get_dutch_provinces()
@@ -31,13 +51,16 @@ def select_province(request):
         for name in names:
             print(name,request.POST[name])
         d = request.POST
+        aui = get_annotation_user_info(request.user)
+        update_annotion_user_info(aui,d)
         return redirect('texts:annotate',
             location = d['provinces'], 
             location_type = 'province',
             exclude_recordings = d['exclude_recordings'],
             exclude_transcriptions= d['exclude_transcriptions'],
             minimum_match = d['minimum_match'], 
-            perc_lines = d['perc_lines'])
+            perc_lines = d['perc_lines'],
+            session_key = aui.session_key)
     return render(request, 'texts/select_province.html', args)
 
 def select_area(request):
@@ -51,13 +74,16 @@ def select_area(request):
         for name in names:
             print(name,request.POST[name])
         d = request.POST
+        aui = get_annotation_user_info(request.user)
+        update_annotion_user_info(aui,d)
         return redirect('texts:annotate',
             location = d['areas'], 
             location_type = 'area',
             exclude_recordings = d['exclude_recordings'],
             exclude_transcriptions= d['exclude_transcriptions'],
             minimum_match = d['minimum_match'], 
-            perc_lines = d['perc_lines'])
+            perc_lines = d['perc_lines'],
+            session_key = aui.session_key)
     return render(request, 'texts/select_area.html', args)
 
 def _handle_annotation(annotation,args):
@@ -81,7 +107,7 @@ def get_annotation_user_info(user):
 
 def annotate(request, location= '', location_type= '', exclude_recordings = 'none',
     exclude_transcriptions = 'none', minimum_match = 35, perc_lines = 20, 
-    record_index = 0, line_index = 0,resume = 'false'):
+    record_index = 0, line_index = 0,resume = 'false', session_key = ''):
     print('request',request.user)
     print('post',request.POST)
     aui = get_annotation_user_info(request.user)
@@ -95,7 +121,8 @@ def annotate(request, location= '', location_type= '', exclude_recordings = 'non
         'exclude_transcriptions':exclude_transcriptions,
         'minimum_match':minimum_match,
         'perc_lines':perc_lines, 'record_index':record_index,
-        'line_index':line_index,'annotation_user_info':aui, 'resume':resume}
+        'line_index':line_index,'annotation_user_info':aui, 'resume':resume,
+        'session_key':session_key}
     args = select.args_to_ocrline(args)
     print('args',args)
     o = args['ocrline']
@@ -115,7 +142,7 @@ def _get_indices(request):
 
 def _get_info(request):
     resume = 'false'
-    location, location_type = '',''
+    location, location_type, session_key = '','',''
     if 'resume' in request.POST.keys():
         resume= request.POST['resume']
         location = request.POST['location']
