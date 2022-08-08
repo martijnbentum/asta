@@ -466,7 +466,6 @@ class Annotation(models.Model):
                 index)
             
 
-        
 
 class AnnotationUserInfo(models.Model):
     dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
@@ -477,7 +476,9 @@ class AnnotationUserInfo(models.Model):
     current_location_type= models.CharField(max_length=100,default='')
     current_line_index= models.PositiveIntegerField(null=True,blank=True) 
     finished_recording_pks = models.TextField(default='')
-    finished_ocrline_incidices= models.TextField(default='')
+    finished_ocrline_incidices = models.TextField(default='')
+    session_ocrlines_indices_dict = models.TextField(default='') 
+    session_key = models.CharField(max_length=100,default='')
 
     def add_finished_recording_pk(self,recording):
         if self.recording_annotated(recording): return
@@ -505,20 +506,35 @@ class AnnotationUserInfo(models.Model):
         self.finished_ocrline_incidices = str(d)
         self.save()
 
-    @property
-    def get_recording_pk_to_ocrline_indices_dict(self):
-        if hasattr(self,'_rpk_ocrline_index_dict'): 
-            return self._rpk_ocrline_index_dict
-        if not self.finished_ocrline_incidices: return {}
-        d = eval(self.finished_ocrline_incidices)
+    def _make_indices_dict(self,text):
+        d = eval(text)
         output = {}
         for key in d.keys():
             output[int(key)] = list(map(int, d[key].split(',')))
-        self._rpk_ocrline_index_dict = output
         return output
 
-    def recording_to_finished_ocrline_indices(self,recording):
-        d = self.get_recording_pk_to_ocrline_indices_dict
+    @property
+    def get_recording_pk_to_ocrline_indices_dict(self):
+        if not self.finished_ocrline_incidices: return {}
+        return self._make_indices_dict(self.finished_ocrline_incidices)
+
+    @property
+    def get_sesion_ocrline_indices_dict(self):
+        if not self.session_ocrlines_indices_dict: return {}
+        return self._make_indices_dict(self.session_ocrlines_indices_dict)
+
+    def set_finished_ocrline_indices(self, session_key):
+        d =  self.get_recording_pk_to_ocrline_indices_dict
+        self.session_ocrlines_indices_dict = d
+        self.session_key = session_key
+        self.save()
+
+
+    def recording_to_finished_ocrline_indices(self,recording, key = ''):
+        if key and key == self.session_key:
+            d = self.get_sesion_ocrline_indices_dict
+        else:
+            d = self.get_recording_pk_to_ocrline_indices_dict
         if not d: return []
         if recording.pk not in d.keys(): return []
         else: return d[recording.pk]
