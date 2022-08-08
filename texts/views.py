@@ -71,7 +71,7 @@ def select_area(request):
         return redirect('texts:annotate',
             location = d['areas'], 
             location_type = 'area',
-            exclude_recordings = d['exclude'],
+            exclude_recordings = d['exclude_recordings'],
             exclude_transcriptions= d['exclude_transcriptions'],
             minimum_match = d['minimum_match'], 
             perc_lines = d['perc_lines'])
