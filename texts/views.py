@@ -7,6 +7,9 @@ import random, string
 
 def home(request):
     args = {}
+    print(request.user, str(request.user), str(request.user)== 'AnonymousUser')
+    if str(request.user) =='AnonymousUser':
+        return redirect('login')
     aui = get_annotation_user_info(request.user)
     args['annotation_user_info'] = aui
     return render(request, 'texts/home.html',args)
