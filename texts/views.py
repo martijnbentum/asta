@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from . models import Recording, Transcription, Ocr, Asr, Annotation 
 from . models import AnnotationUserInfo
-from utils import align, select
+from utils import align, select, annotation_overview
 import random, string
 
 
@@ -11,7 +11,13 @@ def home(request):
     if str(request.user) =='AnonymousUser':
         return redirect('login')
     aui = get_annotation_user_info(request.user)
+    alignment_counts = annotation_overview.user_alignment_counts(request.user)
+    province_counts = annotation_overview.user_province_counts(request.user)
+    area_counts = annotation_overview.user_area_counts(request.user)
     args['annotation_user_info'] = aui
+    args['alignment_counts'] = alignment_counts
+    args['province_counts'] = province_counts
+    args['area_counts'] = area_counts
     return render(request, 'texts/home.html',args)
 
 def help(request):

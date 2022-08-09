@@ -52,6 +52,52 @@
 <hr>
 <br>
 
+<table class="table table-borderless table-sm">
+    <tr class="d-flex">
+        <td class="col-3"></td>
+        <td class="col-2">Transcriptions</td>
+    </tr>
+    {% for alignment, count in alignment_counts.items %}
+    <tr class="d-flex">
+        <td class="col-3">{{ alignment }}</td>
+        <td class="col-2">{{count}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<hr>
+<br>
 
+<table class="table table-borderless table-sm">
+    <tr class="d-flex">
+        <td class="col-3"></td>
+        <td class="col-2">Transcriptions</td>
+    </tr>
+    {% for province, count in province_counts.items %}
+    <tr class="d-flex">
+        <td class="col-3">{{ province}}</td>
+        <td class="col-2">{{count}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<hr>
+<br>
+
+<table class="table table-borderless table-sm">
+    <tr class="d-flex">
+        <td class="col-3"></td>
+        <td class="col-2">Transcriptions</td>
+    </tr>
+    {% for area, count in area_counts.items %}
+    <tr class="d-flex">
+        <td class="col-3">{{ area }}</td>
+        <td class="col-2">{{count}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<hr>
+<br>
 
 {% endblock %}
