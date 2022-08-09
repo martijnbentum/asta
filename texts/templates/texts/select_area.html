@@ -76,7 +76,7 @@
 
         <tr class="d-flex">
             <td class="col-4">
-                Set percentage of materials to annotate per recording
+                Set percentage of transcription to annotate per recording
             </td>
             <td class="col-4">
                 <input 
@@ -85,6 +85,36 @@
                     name="perc_lines" 
                     value="20"
                     min="0" 
+                    max="100">
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Set minimum number of transcriptions to annotate per recording
+            </td>
+            <td class="col-4">
+                <input 
+                    type="number" 
+                    id="min_lines" 
+                    name="min_lines" 
+                    value="10"
+                    min="1" 
+                    max="100">
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Set maximum number of transcriptions to annotate per recording
+            </td>
+            <td class="col-4">
+                <input 
+                    type="number" 
+                    id="max_lines" 
+                    name="max_lines" 
+                    value="30"
+                    min="1" 
                     max="100">
             </td>
         </tr>
