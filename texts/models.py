@@ -478,6 +478,8 @@ class AnnotationUserInfo(models.Model):
     exclude_transcriptions= models.CharField(max_length=100,default='')
     perc_lines= models.PositiveIntegerField(null=True,blank=True) 
     minimum_match= models.PositiveIntegerField(null=True,blank=True) 
+    min_lines= models.PositiveIntegerField(null=True,blank=True) 
+    max_lines= models.PositiveIntegerField(null=True,blank=True) 
     current_line_index= models.PositiveIntegerField(null=True,blank=True) 
     finished_recording_pks = models.TextField(default='')
     finished_ocrline_incidices = models.TextField(default='')
