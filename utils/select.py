@@ -153,11 +153,13 @@ def get_recordings_with_annotation_user_info(args):
         args['location'] = aui.current_location
         args['location_type'] = aui.current_location_type
     recordings = get_recordings_with_location_info(args)
+    recordings = filter_recordings_with_exclude_recording(args, recordings)
     if args['resume'] == 'true' and aui.current_recording:
         print('resuming from last point',args['resume'])
         args['resume'] = 'false'
         print(args['resume'])
         pks = [x.pk for x in recordings]
+        args['record_index'] = pks.index(aui.current_recording.pk)
         print(pks,args['record_index'],aui.current_recording,
             aui.current_recording.pk)
         try: args['record_index'] = pks.index(aui.current_recording.pk) 
@@ -168,16 +170,19 @@ def get_recordings_with_annotation_user_info(args):
 def filter_recordings_with_exclude_recording(args, recordings):    
     aui = args['annotation_user_info']
     exclude = args['exclude_recordings']
-    if exclude == 'none': return recordings
+    if exclude == 'none': 
+        print('not excluding recordings')
+        return recordings
     if exclude == 'annotated by me': 
-        print('exclude with annotated by me')
+        print('exclude recordings annotated by me')
         finished_pks = aui.get_finished_recording_pks(args['session_key'])
+        print('finished pks',finished_pks)
     elif exclude == 'annotated by anyone':
-        print('exclude with annotated by anyone')
+        print('exclude recordings annotated by anyone')
         finished_pks = get_all_finished_recording_pks_from_all_users(args)
     else: raise ValueError(exclude, 'unknown value')
     temp = [x for x in recordings if x.pk not in finished_pks]
-    print('exclude',exclude,finished_pks,len(temp),len(recordings))
+    print('exclude recordings',exclude,finished_pks,len(temp),len(recordings))
     if temp: recordings = temp
     return recordings
 
@@ -216,17 +221,24 @@ def _update_annotation_user_info(args,recording):
 def args_to_ocrline(args):
     start = time.time()
     print(args, delta(start))
+    aui = args['annotation_user_info']
     recordings, args = get_recordings_with_annotation_user_info(args)
-    recordings = filter_recordings_with_exclude_recording(args, recordings)
     recording = recordings[args['record_index']]
+    pks = [x.pk for x in recordings]
+    print('select recording | pk',recording.pk, recording,
+        'i',args['record_index'],'pk',aui.current_recording.pk,
+        aui.current_recording, pks)
     mismatch = 100 - args['minimum_match']
     print('mismatch',mismatch,delta(start))
     exclude_indices= make_exclude_indices_with_exclude_transcriptions(args, 
         recording)
     print('exclude indices:',exclude_indices)
+    min_lines = aui.min_lines if aui.min_lines else 10
+    max_lines = aui.max_lines if aui.max_lines else 30
     ocr_lines = sample_ocr_lines(recording.align, 
         maximum_align_mismatch = mismatch,perc_lines = args['perc_lines'],
-        exclude_indices = exclude_indices)
+        exclude_indices = exclude_indices,min_lines =min_lines,
+        max_lines=max_lines)
     if args['line_index'] < 0: args['line_index'] = len(ocr_lines) -1
     print('n ocr lines',len(ocr_lines),delta(start))
     if args['line_index'] >= len(ocr_lines) or len(ocr_lines) == 0: 
