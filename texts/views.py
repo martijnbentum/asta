@@ -40,6 +40,8 @@ def update_annotion_user_info(aui, d):
     aui.exclude_recordings = d['exclude_recordings']
     aui.exclude_transcriptions= d['exclude_transcriptions']
     aui.perc_lines = d['perc_lines']
+    aui.min_lines = d['min_lines']
+    aui.max_lines = d['max_lines']
     aui.minimum_match = d['minimum_match']
     aui.set_session(session_key)
 
