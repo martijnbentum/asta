@@ -8,6 +8,8 @@ var nocrlines=JSON.parse(document.getElementById('nocrlines').textContent);
 console.log(start_time,end_time,alignment)
 var form= document.getElementById('form')
 
+var audio = document.getElementById('audio');
+
 document.onkeyup = function (e) {
     console.log(e.which,e.code,e)
     handle_keypress(e.key)
@@ -20,7 +22,6 @@ function handle_keypress(key) {
         console.log('typing:',key,'in textbox; ignoring commands')
         return
     }
-	var audio = document.getElementById('audio');
     if (audio.paused) {
         console.log('audio not playing')
         if (key == ' ') {
@@ -56,9 +57,8 @@ function handle_keypress(key) {
 }
 
 function play() {
-	var audio = document.getElementById('audio');
 	audio.currentTime = start_time;
-	console.log(audio)
+	console.log(audio, start_time, audio.currentTime)
 	audio.play();
 	audio.addEventListener('timeupdate', (event) => {
 		console.log(audio.currentTime);
