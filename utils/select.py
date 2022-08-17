@@ -343,8 +343,7 @@ def args_to_ocrline(args):
     recording = recordings[args['record_index']]
     pks = [x.pk for x in recordings]
     print('select recording | pk',recording.pk, recording,
-        'i',args['record_index'],'pk',aui.current_recording.pk,
-        aui.current_recording, pks)
+        'i',args['record_index'],'pk')
     mismatch = 100 - args['minimum_match']
     print('mismatch',mismatch,delta(start))
     exclude_indices= make_exclude_indices_with_exclude_transcriptions(args, 
