@@ -136,6 +136,9 @@ def annotate(request, location= '', location_type= '', exclude_recordings = 'non
         'session_key':session_key}
     args = select.args_to_ocrline(args)
     print('args',args)
+    if type(args) == str: 
+        print('all done')
+        return redirect('texts:home')
     o = args['ocrline']
     annotation = load_annotation(recording=o.recording,asr=o.align.asr,
         ocrline_index= o.ocrline_index, user = request.user)
