@@ -19,7 +19,8 @@ class Align:
             asr = Asr.objects.get(pk = 1)
         self.recording = recording
         self.asr = asr
-        self.pickle_filename = '../pickle_align/align_r-' + str(self.recording.pk)
+        self.pickle_filename = '../pickle_align/align_r-' 
+        self.pickle_filename += str(self.recording.pk)
         self.pickle_filename += '_a-' + str(self.asr.pk)
         if os.path.isfile(self.pickle_filename):
             self.__dict__ = self.load_pickle()
@@ -105,6 +106,7 @@ class Align:
             self.index_to_times.update(aw.index_to_times)
             self.index_to_asr_word.update(aw.index_to_asr_word)
 
+
     def _asr_word_tier(self):
         intervals = make_asr_word_intervals(self.asr_words)
         return textgrids.Tier(intervals)
@@ -160,6 +162,10 @@ class Align:
             print('OCR: ', self.ocr_align[start:end])
             print('ASR: ', self.asr_align[start:end])
             print(' ')
+
+    def show_ocrlines(self):
+        for ol in self.ocr_lines:
+            ol.show
 
     def filter_ocr_lines(self,mismatch_threshold = 55):
         if not hasattr(self,'ocr_lines'): return [] 
@@ -232,12 +238,15 @@ class Ocrline:
         return this_count > other_count
 
     @property
-    def annotation(self):
-        if hasattr(self,'_annotation'): return self._annotation
-        self._annotation = None
-        try: self._annotation = self.align.annotations[self.ocrline_index]
-        except IndexError: pass
-        return self._annotation
+    def annotations(self):
+        if hasattr(self,'_annotations'): return self._annotations
+        from texts.models import Annotation
+        self._annotations = Annotation.objects.filter(
+            recording = self.align.recording,
+            asr = self.align.asr,
+            ocrline_index = self.ocrline_index
+            )
+        return self._annotations
         
 
     @property
@@ -259,6 +268,10 @@ class Ocrline:
     @property
     def asr_text(self):
         return ' '.join([x.word for x in self.asr_words])
+
+    @property
+    def ocr_text(self):
+        return self.transcription.text_clean
 
     @property
     def ocr_align_text(self):
@@ -326,8 +339,8 @@ class Ocrline:
 
     @property
     def show(self):
-            print('OCR: ', self.ocr_align_text)
-            print('ASR: ', self.asr_align_text)
+            print(self.ocrline_index,'OCR: ', self.ocr_align_text)
+            print(self.ocrline_index,'ASR: ', self.asr_align_text)
 
 
     @property
@@ -380,6 +393,13 @@ class Asrword:
         for index in indices:
             d[index] = self
         return d
+
+    def in_interval(self,start,end):
+        if start > end: return False
+        if self.start_time < start and self.end_time > start: return True
+        if self.start_time > start and self.start_time < end: return True
+        if end < self.end_time and end > self.start_time: return True
+        return False
 
 
 def align_ocr_transcription_with_ocr_alignment(start_index,transcription,
@@ -467,3 +487,5 @@ def recording_to_alignment(recording, asr = None):
     with open(f) as fin:
         ocr, asr = fin.read().split('\n')
     return ocr, asr
+
+
