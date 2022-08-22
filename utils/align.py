@@ -135,6 +135,17 @@ class Align:
         self.textgrid.write(self.filename_textgrid)
 
     @property
+    def annotations(self):
+        if hasattr(self,'_annotations'): return self._annotations
+        from texts.models import Annotation
+        self._annotations = Annotation.objects.filter(
+            recording = self.recording,
+            asr = self.asr
+            )
+        return self._annotations
+
+
+    @property
     def start_time(self):
         return self.asr_words[0].start_time
 
@@ -219,6 +230,14 @@ class Ocrline:
             if index in other_indices: other_count += 1
             if index in indices: this_count += 1
         return this_count > other_count
+
+    @property
+    def annotation(self):
+        if hasattr(self,'_annotation'): return self._annotation
+        self._annotation = None
+        try: self._annotation = self.align.annotations[self.ocrline_index]
+        except IndexError: pass
+        return self._annotation
         
 
     @property
@@ -307,8 +326,9 @@ class Ocrline:
 
     @property
     def show(self):
-        print(self.align.ocr_align[self.start:self.end+1])
-        print(self.transcription.text_clean)
+            print('OCR: ', self.ocr_align_text)
+            print('ASR: ', self.asr_align_text)
+
 
     @property
     def interval_dict(self):
@@ -435,7 +455,7 @@ def recording_to_alignment_filename(recording, asr = None):
 
 def recording_to_alignment(recording, asr = None):    
     '''
-    recording  the recording you need the alignment for betwen ocr and asr
+    recording  the recording you need the alignment for between ocr and asr
     asr        asr object to select the asr version to align with the ocr text
     '''
     if not asr: 

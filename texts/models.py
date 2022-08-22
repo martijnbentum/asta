@@ -453,7 +453,9 @@ class Annotation(models.Model):
 
     @property
     def align(self):
-        return self.recording.align
+        if hasattr(self,'_align'): return self._align
+        self._align = self.recording.align
+        return self._align
 
     @property
     def ocr_line(self):
@@ -465,6 +467,9 @@ class Annotation(models.Model):
             self.user.annotationuserinfo.add_finished_ocrline_index(recording,
                 index)
             
+    @property
+    def ocrline(self):
+        return self.align.ocr_lines[self.ocrline_index]
 
 
 class AnnotationUserInfo(models.Model):
