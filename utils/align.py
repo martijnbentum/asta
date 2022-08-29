@@ -84,6 +84,10 @@ class Align:
             self.ocr_lines.append(ol)
             index = ol.end + 1
             ocrline_index += 1
+
+    @property
+    def nocrlines(self):
+        return len(self.ocr_lines)
             
     def _get_asr_transcription(self):
         self.asr_transcription = False
@@ -206,6 +210,9 @@ class Ocrline:
         m +=  'OA:  '+self.ocr_align_text+ '\n'
         m +=  'AA:  '+self.asr_align_text
         return m
+
+    def __hash__(self):
+        return self.index
 
     def __eq__(self,other):
         return self.index == other.index
