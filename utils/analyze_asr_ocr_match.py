@@ -1,5 +1,5 @@
 from utils import select
-from texts.models import Recording
+from texts.models import Recording, Annotation
 import json
 from matplotlib import pyplot as plt
 import numpy as np
@@ -123,3 +123,6 @@ def load_json(filename):
     with open(filename) as fin:
         data = json.load(fin)
     return data
+
+def analyse_annotation_match():
+    a = Annotation.object.all()
