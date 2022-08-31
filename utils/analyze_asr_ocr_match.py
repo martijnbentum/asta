@@ -3,17 +3,15 @@ from texts.models import Recording, Annotation
 import json
 from matplotlib import pyplot as plt
 import numpy as np
+from utils.dialect import dialect_groups
 
 area_dict = select.make_area_to_recording_dict()
+
 
 areas = 'Acht,Ov-O,NLimb-Z,NLimb-M,NLimb-N,NBra-M,NBra-Z,NBra-W,NBra-O'
 areas += ',ZHol-O,ZHol-W,ZHol-N'
 areas = areas.split(',')
 
-dialect_groups = {'Nedersaksisch':['Acht','Ov-O']}
-dialect_groups['Limburgs'] = ['NLimb-Z','NLimb-M','NLimb-N']
-dialect_groups['Noord-Brabants'] = ['NBra-M','NBra-Z','NBra-W','NBra-O']
-dialect_groups['Zuid-Hollands'] = ['ZHol-O','ZHol-W','ZHol-N']
 
 def align_to_duration(a,min_duration=1,min_match=0):
     mismatch = 100 - min_match
