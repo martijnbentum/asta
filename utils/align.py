@@ -212,7 +212,7 @@ class Ocrline:
         return m
 
     def __hash__(self):
-        return self.index
+        return self.recording.pk * 10**6 + self.index
 
     def __eq__(self,other):
         return self.index == other.index
