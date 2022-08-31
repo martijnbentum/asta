@@ -52,6 +52,7 @@ pycparser==2.21
 Pygments==2.12.0
 pyparsing==3.0.9
 python-dateutil==2.8.2
+python-decouple==3.6
 pytz==2022.1
 PyYAML==6.0
 regex==2022.4.24
@@ -71,6 +72,7 @@ torch==1.11.0
 tqdm==4.64.0
 traitlets==5.2.1.post0
 transformers==4.19.2
-typing-extensions==4.2.0
+typing_extensions==4.2.0
 urllib3==1.26.9
+uWSGI==2.0.20
 wcwidth==0.2.5

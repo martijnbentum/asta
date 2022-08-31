@@ -1,0 +1,62 @@
+body {
+    overflow: hidden;
+}
+
+input {
+    width: 100%;
+}
+
+.table td {
+    text-align:center;
+}
+
+.clamp-styling {
+    display: -webkit-box;
+    webkit-line-clamp: 12; 
+    webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 3em;
+    height: 12em;
+    background-color:#f0f0ed;
+}
+
+.title-parent {
+    white-space:nowrap;
+}
+.title-child {
+    display:inline-block;
+}
+
+.right {
+    position: absolute;
+    right: 10px;
+}
+
+.lightgrey {
+    color:lightgrey;
+}
+
+.ocr-text {
+    padding-top:20px;
+    padding-bottom:20px;
+    font-family:Arial,sans-serif;
+    font-family:"Courier New",monospace;
+    font-size:30px;
+
+}
+
+.align {
+    padding:0px;
+    margin:0px;
+    font-family:"Courier New",monospace;
+    font-size:18px;
+    color:grey;
+}
+
+.grey{
+    color:grey;
+}
+
+.small {
+    font-size:10px;
+}

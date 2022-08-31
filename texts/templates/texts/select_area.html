@@ -1,0 +1,134 @@
+{% extends "texts/base.html" %}
+
+{% block content %}
+
+
+<form method='post'>
+    {% csrf_token %}
+    <table class="table table-borderless table-sm">
+        <tr class="d-flex">
+            <td class="col-4">
+                Select area
+            </td>
+            <td class="col-4">
+                <select name="areas" id="areas">
+                    {% for area, count in areas.items %}
+                        <option value="{{area}}">
+                            {{area}} <small>({{count}})</small>
+                        </option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Exclude recordings
+            </td>
+            <td class="col-4">
+                <select name="exclude_recordings" id="exclude_recordings">
+                    <option value="none">
+                        None
+                    </option>
+                    <option value="annotated by anyone">
+                        Annotated by anyone
+                    </option>
+                    <option value="annotated by me">
+                        Annotated by me
+                    </option>
+                </select>
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Exclude transcriptions
+            </td>
+            <td class="col-4">
+                <select name="exclude_transcriptions" id="exclude_transcriptions">
+                    <option value="annotated by me">
+                        Annotated by me
+                    </option>
+                    <option value="none">
+                        None
+                    </option>
+                    <option value="annotated by anyone">
+                        Annotated by anyone
+                    </option>
+                </select>
+            </td>
+        </tr>
+        
+        <tr class="d-flex">
+            <td class="col-4">
+                Set minimum match between ocr and asr alignment
+            </td>
+            <td class="col-4">
+                <input 
+                    type="number" 
+                    id="minimum_match" 
+                    name="minimum_match" 
+                    value="35"
+                    min="0" 
+                    max="100">
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Set percentage of transcription to annotate per recording
+            </td>
+            <td class="col-4">
+                <input 
+                    type="number" 
+                    id="perc_lines" 
+                    name="perc_lines" 
+                    value="10"
+                    min="0" 
+                    max="100">
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Set minimum number of transcriptions to annotate per recording
+            </td>
+            <td class="col-4">
+                <input 
+                    type="number" 
+                    id="min_lines" 
+                    name="min_lines" 
+                    value="10"
+                    min="1" 
+                    max="100">
+            </td>
+        </tr>
+
+        <tr class="d-flex">
+            <td class="col-4">
+                Set maximum number of transcriptions to annotate per recording
+            </td>
+            <td class="col-4">
+                <input 
+                    type="number" 
+                    id="max_lines" 
+                    name="max_lines" 
+                    value="30"
+                    min="1" 
+                    max="100">
+            </td>
+        </tr>
+
+
+        <tr class="d-flex">
+            <td class="col-4">
+            </td>
+            <td class="col-4">
+                <button type='submit' value="submit">Start</button>
+            </td>
+        </tr>
+    </table
+</form
+
+
+{% endblock %}

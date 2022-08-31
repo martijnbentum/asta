@@ -1,0 +1,103 @@
+{% extends "texts/base.html" %}
+
+{% block content %}
+
+<a
+    id="help"
+    href="{% url 'texts:help'%}"
+    class="btn btn-outline-primary">
+        help
+</a>
+<a
+    id="annotate_by_province"
+    href="{% url 'texts:select_province'%}"
+    class="btn btn-outline-secondary">
+        annotate by province
+</a>
+<a
+    id="annotate_by_area"
+    href="{% url 'texts:select_area'%}"
+    class="btn btn-outline-secondary">
+        annotate by area
+</a>
+
+{% if annotation_user_info.can_continue %}
+    <a
+        id="resume"
+        href="{% url 'texts:resume'%}"
+        class="btn btn-outline-success">
+            resume
+    </a>
+{% endif %}
+<br>
+<hr>
+<br>
+    
+<table class="table table-borderless table-sm">
+    <tr class="d-flex">
+        <td class="col-3"></td>
+        <td class="col-2">Annotated</td>
+    </tr>
+    <tr class="d-flex">
+        <td class="col-3">recordings </td>
+        <td class="col-2">{{annotation_user_info.n_recordings_annotated}}</td>
+    </tr>
+    <tr class="d-flex">
+        <td class="col-3">transcriptions</td>
+        <td class="col-2">{{annotation_user_info.n_transcriptions_annotated}}</td>
+    </tr>
+</table>
+
+<br>
+<hr>
+<br>
+
+<table class="table table-borderless table-sm">
+    <tr class="d-flex">
+        <td class="col-3"></td>
+        <td class="col-2">Transcriptions</td>
+    </tr>
+    {% for alignment, count in alignment_counts.items %}
+    <tr class="d-flex">
+        <td class="col-3">{{ alignment }}</td>
+        <td class="col-2">{{count}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<hr>
+<br>
+
+<table class="table table-borderless table-sm">
+    <tr class="d-flex">
+        <td class="col-3"></td>
+        <td class="col-2">Transcriptions</td>
+    </tr>
+    {% for province, count in province_counts.items %}
+    <tr class="d-flex">
+        <td class="col-3">{{ province}}</td>
+        <td class="col-2">{{count}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<hr>
+<br>
+
+<table class="table table-borderless table-sm">
+    <tr class="d-flex">
+        <td class="col-3"></td>
+        <td class="col-2">Transcriptions</td>
+    </tr>
+    {% for area, count in area_counts.items %}
+    <tr class="d-flex">
+        <td class="col-3">{{ area }}</td>
+        <td class="col-2">{{count}}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<hr>
+<br>
+
+{% endblock %}

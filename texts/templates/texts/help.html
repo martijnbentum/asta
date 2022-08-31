@@ -1,0 +1,154 @@
+{% extends "texts/base.html" %}
+
+{% block content %}
+<h1> Transcription protocol</h1>
+<hr>
+
+<h4> Goal </h4>
+<p>
+Annotating the quality of the alignment between a short
+transcription and the audio.
+</p>
+<hr>
+
+<h4> Background </h4>
+<p>
+The Meertens institute recorded speech in different dialects from all over 
+the Netherlands. Some of these recording were transcribed
+in a semi-phonemic fashion. The transcriptions use
+standard Dutch spelling, but deviate to some extent to reflect the 
+pronounciation of a word in a given the dialect.
+The paper documents containing the transcriptions were
+scanned and OCRed to create text files.
+These transcriptions were not aligned with the audio recordings.
+</p>
+<p>
+To align the manual transcriptions, we created automatic transcriptions 
+of the audio recordings
+with a Dutch Wav2vec automatic speech recognition (ASR) system
+trained on the Spoken Dutch Corpus (i.e. utilizing
+standard Dutch spelling). In a second step this 
+ASR transcription was aligned with
+the manual transcriptions. The goal of the current annotations is to rate
+the quality of the alignment between the manual transcription and the audio.
+</p>
+<hr>
+
+
+<h4> Selecting materials to annotate  </h4>
+<p> You can annotate by province or area (streek). You can use different 
+settings to select materials. The materials are organized per recording.
+A recording is a single audio file. Each transcribed sentence/phrase is
+considered a transcription.
+</p>
+<p>
+    <b>exclude recordings</b> Exclude recordings based on whether you or 
+    anyone annotated the recording (this does not necessarily mean all
+    transcriptions are annotated
+</p>
+<p>
+    <b>exclude transcription</b> Exclude transcriptions based on 
+    whether you or 
+    anyone annotated the recording. This can be usefull if you want to annotate
+    more materials of a province you annotated before or if you want to
+    make sure you are only annotating materials not annotated before.
+</p>
+<p>
+    <b>minmum match</b> This a percentage and selects only to transcriptions
+    that that have a percentage match on the character of that number or higher
+    between the manual and automatic (wav2vec) version of the transcription.
+    If you set this very low you might get a lot transcriptions 
+    with bad alignment
+    If you set it to high you might only get transcriptions that are ok.
+    The setting is good if you a bit of both so we can figure out 
+    what number to
+    use if we do not have manual annotations.
+</p>
+<p>
+    <b>percentage material</b> Sets the percentage of transcriptions per
+    recordings to be annotated. To distribute the annotation efforts over
+    different recordings it can be good not to annotate all transcriptions
+    of all recordings. By default a minimum of 30 and a maximum of 100
+    transcriptions are selected per recording.
+</p>
+<p>
+    <b>resume</b> On the homepage (click Asta in the upper left corner).
+    you choose to resume annotation. This will take you to the last 
+    transcription you were working on last time.
+</p>
+<hr>
+<h4> Annotation terms </h4>
+<p>
+    <b>bad</b> no or very minimal overlap between audio and transcription
+</p>
+<p>
+    <b>good</b> transcription matches the audio 
+</p>
+<p>
+    <b>start match</b> the start of the transcription matches the audio,
+    but the end of the transcription does not match the audio. The audio can 
+    be shorter or longer than the transcription.
+    Copy paste the matching part of the transcription
+    to the corrected transcription box
+</p>
+<p>
+    <b>middle match</b> the middle of the transcription matches the audio,
+    but the start and end of the transcription is not present in the audio.
+    Copy paste the matching part of the transcription
+    to the corrected transcription box
+</p>
+<p>
+    <b>middle mismatch</b> the start and end of the transcription 
+    match the audio,
+    but the middle of the transcription is not present in the audio.
+    Copy paste the matching part of the transcription
+    to the corrected transcription box
+</p>
+<p>
+    <b>end match</b> the end of the transcription matches the audio,
+    but the start of the transcription does not match the audio. The
+    beginning of the audio can be before or after the transcription.
+    Copy paste the matching part of the transcription
+    to the corrected transcription box
+</p>
+<hr>
+
+<h4> Tips & Tricks </h4>
+<p> to speed up annotation you can use keys to navigate and annotate
+the materials, below a list of them. The shortcut keys for the 
+annotation buttons are bolded.
+</p>
+<p>
+    <b>spacebar</b> start the audio fragment. You can also
+    click the play icon above the transcription
+</p>
+<p>
+    <b>p</b> (previous) go to the previous transcription. 
+    Only works if there is one.
+    You can also click the left arrow in the upper right corner.
+</p>
+<p>
+    <b>n</b> (next) go to the next transcription. Only works if this
+    transcription is annotated.
+    you can also click the right arrow in the upper right corner.
+</p>
+<p>
+    <b>b</b> annotate with label 'bad'
+</p>
+<p>
+    <b>s</b> annotate with label 'start match'
+</p>
+<p>
+    <b>m</b> annotate with label 'middle match'
+</p>
+<p>
+    <b>i</b> annotate with label 'middle mismatch'
+</p>
+<p>
+    <b>e</b> annotate with label 'end match'
+</p>
+<p>
+    <b>g</b> annotate with label 'good'
+</p>
+
+{% endblock %}

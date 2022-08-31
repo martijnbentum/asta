@@ -1,10 +1,8 @@
 from django.db import models
+from django.contrib.auth.models import User
 import numpy as np
 from utils.clean_text import clean_simple
-from utils import celex, audio
-import matplotlib.image as mpimg
-from matplotlib import pyplot as plt
-plt.rcParams["figure.figsize"] = (10,12)
+from utils import celex, align
     
 
 class Dialect(models.Model):
@@ -139,6 +137,7 @@ class Recording(models.Model):
         return self._ocrs
 
     def load_audio(self,start = 0.0, end = None):
+        from utils import audio
         return audio.load_recording(self,start,end)
 
     def show_ocr_page_images(self, npages = None):
@@ -193,6 +192,20 @@ class Recording(models.Model):
     @property
     def nwords_in_celex(self):
         return len(self.words_in_celex)
+
+    @property
+    def web_mp3(self):
+        from utils.download_media import make_new_audio_filename
+        return make_new_audio_filename(self.original_audio_filename)
+
+    @property
+    def web_wav(self):
+        from utils.download_media import make_new_audio_filename
+        return make_new_audio_filename(self.wav_filename)
+
+    @property
+    def align(self):
+        return align.Align(self)
 
 class Ocr(models.Model):
     '''optical charcter recognition information of the transcription.
@@ -260,14 +273,26 @@ class Ocr(models.Model):
             self.save()
 
     @property
-    def image(self):
+    def image_full_path(self):
         path = '/vol/bigdata2/corpora2/CLARIAH-PLUS/ASTA/transcriptions/'
         path += '1001:2_Transcripties_geanonimiseerd/'
-        filename = path + self.image_filename
-        img = mpimg.imread(filename)
+        return path + self.image_filename
+
+    @property
+    def web_image_filename(self):
+        from utils.download_media import make_new_ocr_filename
+        return make_new_ocr_filename(self.image_full_path)
+        
+
+    @property
+    def image(self):
+        import matplotlib.image as mpimg
+        img = mpimg.imread(self.image_full_path)
         return img
 
     def show_page_image(self):
+        from matplotlib import pyplot as plt
+        plt.rcParams["figure.figsize"] = (10,12)
         img = self.image
         plt.clf()
         plt.imshow(img,cmap='gray')
@@ -383,6 +408,8 @@ class Transcription(models.Model):
 
 
     def show_line_image(self):
+        from matplotlib import pyplot as plt
+        plt.rcParams["figure.figsize"] = (10,12)
         img = self.ocr.image
         y = self.ocr_avg_y
         start, end = y - 30, y + 30
@@ -397,5 +424,160 @@ class Transcription(models.Model):
         plt.show()
         print(self)
 
+class Annotation(models.Model):
+    dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
+    recording = models.ForeignKey(Recording, **dargs)
+    asr = models.ForeignKey(Asr, **dargs)
+    user= models.ForeignKey(User, **dargs)
+    ocrline_index = models.PositiveIntegerField(null=True,blank=True) 
+    alignment= models.CharField(max_length=100,default='') 
+    corrected_transcription= models.CharField(max_length=300,default='')
+    comments= models.TextField(default='')
 
+    class Meta:
+        unique_together = [['asr','recording','user','ocrline_index']]
+
+    def __repr__(self):
+        m = ''
+        if self.user:
+            m += 'username: ' + self.user.username + ' | ' 
+        m += 'alignment: ' + self.alignment 
+        m += ' ocrline index:' + str(self.ocrline_index)
+        m += ' recording pk:' + str(self.recording.pk)
+        if self.corrected_transcription:
+            m += ' | corrected: ' + self.corrected_transcription
+        return m
+
+    def __str__(self):
+        return self.__repr__()
+
+    @property
+    def align(self):
+        if hasattr(self,'_align'): return self._align
+        self._align = self.recording.align
+        return self._align
+
+    @property
+    def ocr_line(self):
+        return self.align.ocr_lines[self.ocrline_index]
+
+    def add_ocrline_index_to_user_info(self):
+        if self.user and self.recording and type(self.ocrline_index) == int:
+            recording, index = self.recording, self.ocrline_index
+            self.user.annotationuserinfo.add_finished_ocrline_index(recording,
+                index)
+            
+    @property
+    def ocrline(self):
+        return self.align.ocr_lines[self.ocrline_index]
+
+
+class AnnotationUserInfo(models.Model):
+    dargs = {'on_delete':models.SET_NULL,'blank':True,'null':True}
+    user = models.OneToOneField(User, on_delete = models.CASCADE, 
+        blank=True,null=True)
+    current_recording = models.ForeignKey(Recording, **dargs)
+    current_location= models.CharField(max_length=100,default='')
+    current_location_type= models.CharField(max_length=100,default='')
+    exclude_recordings= models.CharField(max_length=100,default='')
+    exclude_transcriptions= models.CharField(max_length=100,default='')
+    perc_lines= models.PositiveIntegerField(null=True,blank=True) 
+    minimum_match= models.PositiveIntegerField(null=True,blank=True) 
+    min_lines= models.PositiveIntegerField(null=True,blank=True) 
+    max_lines= models.PositiveIntegerField(null=True,blank=True) 
+    current_line_index= models.PositiveIntegerField(null=True,blank=True) 
+    finished_recording_pks = models.TextField(default='')
+    finished_ocrline_incidices = models.TextField(default='')
+    session_ocrlines_indices_dict = models.TextField(default='') 
+    session_recording_pks = models.TextField(default='') 
+    session_key = models.CharField(max_length=100,default='')
+
+    def add_finished_recording_pk(self,recording):
+        if self.recording_annotated(recording): return
+        pk = str(recording.pk)
+        if self.finished_recording_pks: 
+            pk = ',' + pk
+        self.finished_recording_pks += pk 
+        self.save()
+
+    def recording_annotated(self,recording):
+        pks = self.finished_recording_pks.split(',')
+        pk = str(recording.pk)
+        return pk in pks
+
+    def add_finished_ocrline_index(self,recording,index):
+        if not self.finished_ocrline_incidices: d = {}
+        else: d = eval(self.finished_ocrline_incidices)
+        pk = str(recording.pk)
+        if pk not in d.keys(): d[pk] = str(index)
+        else: 
+            indices = d[pk].split(',')
+            if str(index) not in indices:
+                d[pk] += ',' + str(index)
+            else: return
+        self.finished_ocrline_incidices = str(d)
+        self.save()
+
+    def _make_indices_dict(self,text):
+        d = eval(text)
+        output = {}
+        for key in d.keys():
+            output[int(key)] = list(map(int, d[key].split(',')))
+        return output
+
+    @property
+    def get_recording_pk_to_ocrline_indices_dict(self):
+        print('using general dict')
+        if not self.finished_ocrline_incidices: return {}
+        return self._make_indices_dict(self.finished_ocrline_incidices)
+
+    @property
+    def get_sesion_ocrline_indices_dict(self):
+        print('using session dict')
+        if not self.session_ocrlines_indices_dict: return {}
+        return self._make_indices_dict(self.session_ocrlines_indices_dict)
+
+    def set_session(self, session_key):
+        self.session_ocrlines_indices_dict = self.finished_ocrline_incidices
+        self.session_recording_pks = self.finished_recording_pks
+        self.session_key = session_key
+        self.save()
+
+
+    def recording_to_finished_ocrline_indices(self,recording,session_key = ''):
+        if session_key and session_key== self.session_key:
+            d = self.get_sesion_ocrline_indices_dict
+        else:
+            d = self.get_recording_pk_to_ocrline_indices_dict
+        if not d: return []
+        if recording.pk not in d.keys(): return []
+        else: return d[recording.pk]
+    
+    @property
+    def can_continue(self):
+        if self.current_recording: return True
+        else: return False
+            
+    @property
+    def n_recordings_annotated(self):
+        if not self.finished_recording_pks: return 0
+        return len(self.finished_recording_pks.split(',')) 
+
+    @property
+    def n_transcriptions_annotated(self):
+        n = 0
+        for indices in self.get_recording_pk_to_ocrline_indices_dict.values():
+            n += len(indices)
+        return n
+
+    def get_finished_recording_pks(self,session_key = ''):
+        if session_key and session_key== self.session_key:
+            if not self.session_recording_pks: pks = []
+            else: pks = self.session_recording_pks.split(',')
+        else:
+            if not self.finished_recording_pks: pks = []
+            else: pks = self.finished_recording_pks.split(',')
+        return list(map(int, pks))
+    
+    
 
