@@ -23,8 +23,7 @@ def _load_audio(item):
     st, et = item['start_time'], item['end_time']
     filename = item['audiofilename']
     item['audio'] = {}
-    item['audio']['array'] = load_audio_section(st,et,filename,
-        sampling_rate = 1600)
+    item['audio']['array'] = load_audio_section(st,et,filename)
     item['audio']['sampling_rate'] = 16000
     return item
 
