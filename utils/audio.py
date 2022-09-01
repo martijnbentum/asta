@@ -11,8 +11,8 @@ def load_recording(recording, start = 0.0,end = None):
 	return audio
 	
 
-def load_audio_section(start_time,end_time,filename,audio=None,
-    sampling_rate = 16000):
-    if not audio: audio = load_audio(filename, sampling_rate)
+def load_audio_section(start_time,end_time,filename,audio=None):
+    sampling_rate = 16000
+    if not audio: audio = load_audio(filename)
     return audio[int(start_time*sampling_rate):int(end_time*sampling_rate)]
         
