@@ -27,6 +27,11 @@ input {
     display:inline-block;
 }
 
+.right-copy {
+    position:absolute;
+    right: 15px;
+}
+
 .right {
     position: absolute;
     right: 10px;
