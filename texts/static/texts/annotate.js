@@ -1,11 +1,13 @@
 var start_time = JSON.parse(document.getElementById('start-time').textContent);
 var end_time = JSON.parse(document.getElementById('end-time').textContent);
 var web_wav= JSON.parse(document.getElementById('web-wav').textContent);
+var text_clean= JSON.parse(document.getElementById('text-clean').textContent);
 var alignment= JSON.parse(document.getElementById('alignment').textContent);
 var already_annotated=JSON.parse(document.getElementById('already-annotated').textContent);
 var nocrlines=JSON.parse(document.getElementById('nocrlines').textContent);
 
 console.log(start_time,end_time,alignment)
+console.log(text_clean)
 var form= document.getElementById('form')
 
 var audio = document.getElementById('audio');
@@ -13,6 +15,11 @@ var audio = document.getElementById('audio');
 document.onkeyup = function (e) {
     console.log(e.which,e.code,e)
     handle_keypress(e.key)
+}
+
+function copy_transcription() {
+	var textbox = document.getElementById('corrected_transcription');
+    textbox.value= text_clean
 }
 
 function handle_keypress(key) {
