@@ -10,9 +10,11 @@
 {{ocrline.start_time|json_script:'start-time'}}
 {{ocrline.end_time|json_script:'end-time'}}
 {{ocrline.align.recording.web_wav|json_script:'web-wav'}}
+{{ocrline.transcription.text_clean|json_script:'text-clean'}}
 {{alignment|json_script:'alignment'}}
 {{already_annotated|json_script:'already-annotated'}}
 {{nocrlines|json_script:'nocrlines'}}
+
 
 <div class="title-parent">
     <div class="title-child">
@@ -64,6 +66,12 @@
     <p>
         <label class="grey" for="corrected_transcription">
             Corrected transcription: 
+				<a
+                    id="copy"
+					class="btn btn-link btn-sm right-copy"
+					type='submit' onclick="copy_transcription()" 
+					value="copy">copy
+				</a>
         </label>
     </p> 
     <input 
