@@ -451,6 +451,12 @@ class Annotation(models.Model):
     def __str__(self):
         return self.__repr__()
 
+    def __eq__(self, other):
+        return self.transcription_id == other.transcription_id
+
+    def __hash__(self):
+        return hash(self.transcription_id)
+
     @property
     def align(self):
         if hasattr(self,'_align'): return self._align
@@ -470,6 +476,10 @@ class Annotation(models.Model):
     @property
     def ocrline(self):
         return self.align.ocr_lines[self.ocrline_index]
+
+    @property
+    def transcription_id(self):
+        return self.recording_id, self.ocrline_index
 
 
 class AnnotationUserInfo(models.Model):
