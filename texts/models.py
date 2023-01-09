@@ -205,7 +205,9 @@ class Recording(models.Model):
 
     @property
     def align(self):
-        return align.Align(self)
+        if not hasattr(self,'_align'):
+            self._align = align.Align(self)
+        return self._align
 
 class Ocr(models.Model):
     '''optical charcter recognition information of the transcription.
