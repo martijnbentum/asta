@@ -126,7 +126,8 @@ def handle_start_alignments(annotations, ratio_threshold = .5):
         if not annotation.corrected_transcription: continue
         add_levenshtein(annotation)
         if annotation.lratio.q4_ratio < ratio_threshold: continue
-        line = _annotation_to_line(annotation.corrected_transcription)
+        ct = annotation.corrected_transcription
+        line = _annotation_to_line(annotation,ct)
         output.append(line)
     return output
 
@@ -144,7 +145,8 @@ def handle_end_alignments(annotations, ratio_threshold = .5):
         if not annotation.corrected_transcription: continue
         add_levenshtein(annotation)
         if annotation.lratio.q1_ratio < ratio_threshold: continue
-        line = _annotation_to_line(annotation.corrected_transcription)
+        ct = annotation.corrected_transcription
+        line = _annotation_to_line(annotation,ct)
         output.append(line)
     return output
 
@@ -164,7 +166,8 @@ def handle_middle_alignments(annotations, ratio_threshold = .5):
         add_levenshtein(annotation)
         if annotation.lratio.q1_ratio < ratio_threshold: continue
         if annotation.lratio.q4_ratio < ratio_threshold: continue
-        line = _annotation_to_line(annotation.corrected_transcription)
+        ct = annotation.corrected_transcription
+        line = _annotation_to_line(annotation,ct)
         output.append(line)
     return output
 
