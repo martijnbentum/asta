@@ -213,9 +213,6 @@ def make_json(ocr_lines, name, cache_dir = cache_dir, save = False):
             json.dump(output,fout)
     return data
         
-        
-    
-
 
 def make_train_dev_test_set(d, max_duration = 7, train_perc = .8):
     ntotal = len(d.ocr_lines)
@@ -262,12 +259,3 @@ def make_vocab_dict(datasets = None, save=False):
         with open(vocab_filename, 'w') as fout:
             json.dump(vocab_dict,fout)
     return vocab_dict
-        
-                
-    
-
-
-    
-    
-
-
