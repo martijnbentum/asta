@@ -34,8 +34,8 @@ class ManualDataset():
         return m
 
     def _set_info(self):
-        self.lines, d = select_lines(
-            self.minimum_match, self.minimum_duration, self.minimum_tokens)
+        self.lines, d = select_lines(self.data.data, self.minimum_duration, 
+            self.minimum_tokens, self.max_duration)
         for key, value in d.items():
             setattr(self,'excluded_'+key,value)
 
@@ -94,6 +94,7 @@ def make_train_dev_test_set(d, max_duration = 7, train_perc = .8):
 
 def select_lines(lines,minimum_duration= 1,minimum_tokens = 10, 
     max_duration = 7):
+    d = {} 
     d['to_short']= [x for x in lines if x.duration < minimum_duration]
     d['to_few_tokens']= [x for x in lines if len(x.ocr_text) < minimum_tokens]
     d['to_long'] = [x for x in lines if x.duration > max_duration]
