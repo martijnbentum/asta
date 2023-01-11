@@ -37,9 +37,8 @@ class DataLine:
     '''contains annotation data for a single line of the ocr_transcription.
     input *line should be a list created with _annotation_to_line
     '''
-    def __init__(self,annotation_pk, recording_pk, ocr_transcription,
-        corrected_transcription, wav_filename, start_time, end_time,
-        alignment):
+    def __init__(self,annotation_pk, recording_pk, transcription,
+        wav_filename, start_time, end_time, alignment):
         self.annotation_pk = annotation_pk
         self.recording_pk = recording_pk
         self.ocr_transcription = ocr_transcription
@@ -88,7 +87,7 @@ def _annotation_to_line(annotation, transcription):
     line = [annotation.pk]
     line.append(annotation.recording.pk)
     clean_transcription = Cleaner(transcription).text_clean
-    line.extend([transcription,clean_transcription])
+    line.append(clean_transcription)
     line.append(annotation.recording.wav_filename)
     line.append(annotation.ocr_line.start_time)
     line.append(annotation.ocr_line.end_time)
