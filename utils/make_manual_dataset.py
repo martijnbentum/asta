@@ -3,6 +3,7 @@ import json
 import pickle
 import random
 from unidecode import unidecode
+from utils import handle_annotations
 
 cache_dir = '/vol/tensusers/mbentum/ASTA/WAV2VEC_DATA/'
 vocab_filename = cache_dir + 'vocab.json'
@@ -10,10 +11,10 @@ random.seed(9)
 
 
 class ManualDataset():   
-    def __init__(self, filename, minimum_duration = 0.5,
+    def __init__(self, filename = '../etske_acht.pkl', minimum_duration = 0.5,
         max_duration = 7, minimum_tokens = 10, train_perc = .8, save = False):
         self.filename = filename
-        self.data = pickle.load(open(filename,'rb'))
+        self.data = handle_annotations.Data(filename)
         self.name = filename.split('/')[-1].split('.')[0]
         self.minimum_duration = minimum_duration
         self.max_duration = max_duration
@@ -21,7 +22,6 @@ class ManualDataset():
         self.train_perc = train_perc
         self.save = save
         self._set_info()
-        self._clean()
         self._make_train_dev_test()
         self.make_json()
 
@@ -34,15 +34,10 @@ class ManualDataset():
         return m
 
     def _set_info(self):
-        self.recordings = get_dialect_recordings(self.dialect_name)
-        self.ocr_lines, d= get_dialect_ocrlines(self.dialect_name,
+        self.lines, d = select_lines(
             self.minimum_match, self.minimum_duration, self.minimum_tokens)
         for key, value in d.items():
             setattr(self,'excluded_'+key,value)
-    
-    def _clean(self):
-        for ol in self.ocr_lines:
-            ol.cleaner = Cleaner(ol.ocr_text)
 
     def make_json(self):
         n = self.name
@@ -96,5 +91,14 @@ def make_train_dev_test_set(d, max_duration = 7, train_perc = .8):
     dev = [d.ocr_lines[i] for i in dev_indices]
     test= [d.ocr_lines[i] for i in test_indices]
     return train,dev,test,train_perc 
+
+def select_lines(lines,minimum_duration= 1,minimum_tokens = 10, 
+    max_duration = 7):
+    d['to_short']= [x for x in lines if x.duration < minimum_duration]
+    d['to_few_tokens']= [x for x in lines if len(x.ocr_text) < minimum_tokens]
+    d['to_long'] = [x for x in lines if x.duration > max_duration]
+    d['bad'] = list(set(to_short + to_few_tokens + to_long))
+    ok = [x for x in ols if x not in bad]
+    return lines, d
 
 
