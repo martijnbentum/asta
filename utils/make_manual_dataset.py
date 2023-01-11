@@ -39,26 +39,31 @@ class ManualDataset():
         for key, value in d.items():
             setattr(self,'excluded_'+key,value)
 
+    def _make_train_dev_test(self):
+        o = make_train_dev_test_set(self.lines,self.train_perc) 
+        self.train, self.dev, self.test, self.train_perc = o
+        
+
     def make_json(self):
         n = self.name
         self.train_data = make_json(self.train,n +'_train', save= self.save)
         self.dev_data = make_json(self.dev,n +'_dev', save=self.save)
         self.test_data = make_json(self.test,n+'_test', save=self.save)
 
-def line_to_dict(data):
-    d = {'recording_pk':line.recording.pk}
-    d['ocrline_index']=line.ocrline_index
-    d['sentence']=line.cleaner.text_clean.lower()
-    d['audiofilename']=line.recording.wav_filename
+def line_to_dict(line):
+    d = {'recording_pk':line.recording_pk}
+    d['annotation_pk']=line.annotation_pk
+    d['sentence']=line.transcription
+    d['audiofilename']=line.wav_filename
     d['sampling_rate']=16000
     d['start_time'] = line.start_time
     d['end_time'] = line.end_time
     return d
 
-def make_json(ocr_lines, name, cache_dir = cache_dir, save = False):
+def make_json(lines, name, cache_dir = cache_dir, save = False):
     data = []
-    for ocrline in ocr_lines:
-        data.append(ocrline_to_dict(ocrline))
+    for line in lines:
+        data.append(line_to_dict(line))
     output = {'data':data}
     if not name.endswith('.json'): name += '.json'
     if save:
@@ -67,39 +72,32 @@ def make_json(ocr_lines, name, cache_dir = cache_dir, save = False):
             json.dump(output,fout)
     return data
 
-def make_train_dev_test_set(d, max_duration = 7, train_perc = .8):
-    ntotal = len(d.data)
+def make_train_dev_test_set(lines, train_perc = .8):
+    ntotal = len(lines)
     ntrain = int(ntotal * train_perc)
     ndev = int((ntotal-ntrain)/2)
     ntest = ntotal - (ntrain + ndev)
-    indices = list(range(len(d.ocr_lines)))
-    i = [i for i,x in enumerate(d.ocr_lines) if x.duration <= max_duration]
-    not_to_long_indices = i
-    if len(not_to_long_indices) > ntrain:
-        train_indices = random.sample(not_to_long_indices,ntrain)
-        other = [i for i in indices if i not in train_indices]
-    else:
-        train_indices = not_to_long_indices
-        ntrain = len(train_indices)
-        ndev = int((ntotal-ntrain)/2)
-        ntest = ntotal - (ntrain + ndev)
-        train_perc = round(ntrain / ntotal,2)
-    other = [i for i in indices if i not in train_indices]
-    dev_indices = random.sample(other,ndev)
-    test_indices = list(set(indices) - set(train_indices+dev_indices))
-    train = [d.ocr_lines[i] for i in train_indices]
-    dev = [d.ocr_lines[i] for i in dev_indices]
-    test= [d.ocr_lines[i] for i in test_indices]
+    indices = list(range(len(lines)))
+    good_indices = [i for i,x in enumerate(lines) if x.alignment == 'good']
+    test_indices = random.sample(good_indices, ntest)
+    other = [i for i in indices if i not in test_indices]
+    dev_indices = random.sample(other, ndev)
+    exclude = test_indices + dev_indices
+    train_indices= [i for i in indices if i not in exclude]
+    train = [lines[i] for i in train_indices]
+    dev = [lines[i] for i in dev_indices]
+    test= [lines[i] for i in test_indices]
     return train,dev,test,train_perc 
 
 def select_lines(lines,minimum_duration= 1,minimum_tokens = 10, 
     max_duration = 7):
     d = {} 
-    d['to_short']= [x for x in lines if x.duration < minimum_duration]
-    d['to_few_tokens']= [x for x in lines if len(x.ocr_text) < minimum_tokens]
+    mt = minimum_tokens
+    d['to_short'] = [x for x in lines if x.duration < minimum_duration]
+    d['to_few_tokens'] = [x for x in lines if len(x.transcription) < mt]
     d['to_long'] = [x for x in lines if x.duration > max_duration]
-    d['bad'] = list(set(to_short + to_few_tokens + to_long))
-    ok = [x for x in ols if x not in bad]
-    return lines, d
+    d['bad'] = list(set(d['to_short'] + d['to_few_tokens'] + d['to_long']))
+    ok = [x for x in lines if x not in d['bad']]
+    return ok, d
 
 
