@@ -41,8 +41,7 @@ class DataLine:
         wav_filename, start_time, end_time, alignment):
         self.annotation_pk = annotation_pk
         self.recording_pk = recording_pk
-        self.ocr_transcription = ocr_transcription
-        self.corrected_transcription = corrected_transcription
+        self.transcription = transcription
         self.wav_filename = wav_filename
         self.start_time = start_time
         self.end_time = end_time
@@ -50,9 +49,7 @@ class DataLine:
         self.duration = self.end_time - self.start_time
         
     def __repr__(self):
-        if self.corrected_transcription:
-            t = self.corrected_transcription
-        else: t = self.ocr_transcription
+        t = self.transcription
         if len(t) > 63: t = t[:60] + '...'
         m = 'Line: ' +str(self.annotation_pk) 
         m += ' ' + t.ljust(64)+ ' ' + self.alignment
