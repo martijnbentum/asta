@@ -1,5 +1,5 @@
 from datasets import load_metric
-from .wav2vec2_data import cache_dir, load_dialect
+from .wav2vec2_data import cache_dir, load_dialect, load_manual_data
 from .wav2vec2_data import DataCollatorCTCWithPadding 
 from transformers import Wav2Vec2CTCTokenizer
 from transformers import Wav2Vec2FeatureExtractor
@@ -60,6 +60,12 @@ def preprocess_datasets(datasets,maximum_length = None, sampling_rate = 16000):
             maximum = maximum_length * sampling_rate
             d[key] = d[key].filter(lambda x: x < maximum,
                 input_columns=['input_length'])
+    return d
+
+def preprocess_manual(name):
+    processor = load_processor()
+    d = load_manual_data(name)
+    d = preprocess_datasets(d)
     return d
 
 def preprocess_dialect(dialect_name):
@@ -132,8 +138,8 @@ def load_training_arguments(experiment_name):
     )
     return training_args
 
-def load_trainer(dialect_name, experiment_name,model = None, training_args = None, 
-    datasets = None,train = 'train',evaluate='dev'):
+def load_trainer(dialect_name, experiment_name,model = None, 
+    training_args = None, datasets = None,train = 'train',evaluate='dev'):
     experiment_name = dialect_name + '_' + experiment_name
     print('set processor')
     processor = load_processor()
@@ -160,7 +166,40 @@ def load_trainer(dialect_name, experiment_name,model = None, training_args = Non
     )
     return trainer
 
+def load_manual_trainer(name, experiment_name,model = None, 
+    training_args = None, datasets = None,train = 'train',evaluate='dev'):
+    experiment_name = name + '_' + experiment_name
+    print('set processor')
+    processor = load_processor()
+    print('make data collator')
+    data_collator = load_data_collator()
+    if not model:
+        print('load model')
+        model = load_model()
+    if not training_args:
+        print('load training arguments')
+        training_args = load_training_arguments(experiment_name)
+    if not datasets:
+        print('load datasets')
+        datasets= preprocess_manual(name)
+    print('defining the trainer')
+    trainer = Trainer(
+        model=model,
+        data_collator=data_collator,
+        args=training_args,
+        compute_metrics=compute_metrics,
+        train_dataset=datasets[train],
+        eval_dataset=datasets[evaluate],
+        tokenizer=processor.feature_extractor,
+    )
+    return trainer
+
 def do_dialect_training(dialect_name,experiment_name):
     trainer = load_trainer(dialect_name, experiment_name)
+    trainer.train()
+    return trainer
+
+def do_manual_training(name, experiment_name):
+    trainer = load_manual_trainer(name, experiment_name)
     trainer.train()
     return trainer
