@@ -19,6 +19,9 @@ def load_all_dialects():
 def make_dialect_json_filename(dialect_name, cache_dir, split):
     return cache_dir + dialect_name + '_' + split + '.json'
 
+def make_manual_json_filename(name, cache_dir, split):
+    return cache_dir + name + '_' + split + '.json'
+
 def _load_audio(item):
     st, et = item['start_time'], item['end_time']
     filename = item['audiofilename']
@@ -31,6 +34,18 @@ def load_dialect(dialect_name, cache_dir = cache_dir, load_audio=True):
     d = {}
     for split in 'train,dev,test'.split(','):
         filename = make_dialect_json_filename(dialect_name,cache_dir,split)
+        d[split] = load_dataset('json',data_files=filename,field='data',
+            cache_dir = cache_dir)
+        if load_audio:
+            d[split] = d[split] = d[split].map(_load_audio)
+    for key in d.keys():
+        d[key] = d[key]['train']
+    return d
+
+def load_manual_data(name, cache_dir = cache_dir, load_audio=True):
+    d = {}
+    for split in 'train,dev,test'.split(','):
+        filename = make_manual_json_filename(name,cache_dir,split)
         d[split] = load_dataset('json',data_files=filename,field='data',
             cache_dir = cache_dir)
         if load_audio:
