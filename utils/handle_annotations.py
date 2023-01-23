@@ -1,8 +1,10 @@
-from texts.models import Annotation
+from texts.models import Annotation, Recording
 from utils.make_dataset import Cleaner
 from utils import needleman_wunch
 import Levenshtein
 import pickle
+import numpy as np
+from matplotlib import pyplot as plt
 
 def make_data_etske_acht(filename='../etske_acht.pkl', save = False):
     a = get_acht_etske_annotation_set()
@@ -246,6 +248,39 @@ class Ratio:
         m += ' q4: ' +str(self.q4_ratio)
         return m
 
+def check_if_recording_has_ocr_lines(recording):
+    try: recording.align.ocr_lines
+    except AttributeError:
+        return False
+    else: return True
+
+def visualize_annotations(recording, shape = (24,70)):
+    if not check_if_recording_has_ocr_lines(recording): return
+    values =shape[0] * shape[1]
+    m = np.zeros((1,values))
+    for annotation in recording.annotation_set.all():
+        index = annotation.ocrline_index
+        if annotation.alignment == 'bad': m[0][index] = -2
+        elif annotation.alignment == 'good': m[0][index] = 2
+        else: m[0][index] = 1
+    n = len(recording.align.ocr_lines)
+    for i in range(values):
+        if i > n: m[0][i] = -0.5
+    m[0][-4:] = -2,-0.5,1,2
+    plt.matshow(m.reshape(*shape))
+    plt.title(str(recording))
+    plt.axis('off')
+    plt.show()
+    return m
+
+def visualize_annotations_from_acht_area(): 
+    recordings = Recording.objects.filter(area='Acht')
+    for recording in recordings:
+        _ = visualize_annotations(recording)
+    
+    
+
+    
 
             
 
