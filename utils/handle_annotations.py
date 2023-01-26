@@ -254,7 +254,8 @@ def check_if_recording_has_ocr_lines(recording):
         return False
     else: return True
 
-def visualize_annotations(recording, shape = (24,70)):
+def visualize_annotations(recording, shape = (24,70), add_match = True, 
+    save = True):
     if not check_if_recording_has_ocr_lines(recording): return
     values =shape[0] * shape[1]
     m = np.zeros((1,values))
@@ -267,21 +268,54 @@ def visualize_annotations(recording, shape = (24,70)):
     for i in range(values):
         if i > n: m[0][i] = -0.5
     m[0][-4:] = -2,-0.5,1,2
-    plt.matshow(m.reshape(*shape))
+    m = m.reshape(*shape)
+    if add_match: 
+        match = np.zeros((1,values))
+        empty= np.zeros((1,values))
+        for i,ocrline in enumerate(recording.align.ocr_lines):
+            match[0][i] = ocrline.align_match / 100 * 4 -2
+        match = match.reshape(*shape)
+        m = interleave_more_matrices([m,match,empty.reshape(*shape)])
+    plt.matshow(m)
     plt.title(str(recording))
     plt.axis('off')
     plt.show()
-    return m
+    if save: 
+        f = '../matrix_plots/' + str(recording).replace(' | ','_') +'.png'
+        plt.savefig(f)
+    return m, match
 
-def visualize_annotations_from_acht_area(): 
+def visualize_annotations_from_acht_area(shape = None, add_match = True): 
+    if add_match and shape == None: shape = (12, 140)
     recordings = Recording.objects.filter(area='Acht')
     for recording in recordings:
-        _ = visualize_annotations(recording)
+        _ = visualize_annotations(recording, shape, add_match)
     
+    
+def interleave_matrices(m1,m2):
+    assert m1.shape == m2.shape
+    output = np.empty((m1.shape[0]+ m2.shape[0], m1.shape[1]), dtype = m1.dtype)
+    output[0::2,:] = m1
+    output[1::2,:] = m2
+    return output
+
+def interleave_more_matrices(matrices):
+    s0 = 0
+    for m in matrices:
+        assert m.shape == matrices[0].shape
+        s0 += m.shape[0]
+    output = np.empty((s0, m.shape[1]), dtype = m.dtype)
+    for i in range(len(matrices)):
+        output[i::len(matrices),:] = matrices[i]
+    return output
+    
+
+
     
 
     
 
             
+
 
 
