@@ -271,7 +271,7 @@ def visualize_annotations(recording, shape = (24,70), add_match = True,
     m = m.reshape(*shape)
     if add_match: 
         match = np.zeros((1,values))
-        empty= np.zeros((1,values))
+        empty= np.zeros((1,values)) 
         for i,ocrline in enumerate(recording.align.ocr_lines):
             match[0][i] = ocrline.align_match / 100 * 4 -2
         match = match.reshape(*shape)
