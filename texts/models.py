@@ -151,10 +151,11 @@ class Recording(models.Model):
         if not self.ocr_transcription_available: 
             print('no ocr available')
             return []
-        if not hasattr(self,'_ocr_transcriptions'):
-            self._ocr_transcriptions = []
-            for ocr_page in self.ocrs:
-                self._ocr_transcriptions.extend(ocr_page.transcriptions)
+        print('make ocr transcription')
+        self._ocr_transcriptions = []
+        for ocr_page in self.ocrs:
+            self._ocr_transcriptions.extend(ocr_page.transcriptions)
+        print(len(self.ocrs),len(self._ocr_transcriptions))
         return self._ocr_transcriptions
 
     @property
