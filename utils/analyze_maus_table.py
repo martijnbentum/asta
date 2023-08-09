@@ -202,14 +202,8 @@ def word_is_integer(word):
     except: return False
     return True
             
-        
-
-        
-
-    
-
-
 def load_table(filename):
+    '''load a maus output textgrid -> table file.'''
     with open(filename,encoding = 'utf16') as fin:
         table=[line.split('\t') for line in fin.read().split('\n')[1:] if line]
     d = get_tier_name_dict()
@@ -221,6 +215,7 @@ def load_table(filename):
 
 
 def get_tier_name_dict():
+    '''transelate maus tier names to readable tier names.'''
     d = {
         'TRN': 'orthographic_chunk',
         'ORT-MAU': 'orthographic_word',
