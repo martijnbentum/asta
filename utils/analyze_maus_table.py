@@ -4,20 +4,56 @@ praat textgrid output is converted to table and read in with Table
 the audio & orthographic transcription was chunked and then forced aligned
 pipeline with asr / gp2 -> chunker -> maus
 '''
+import glob
+from texts.models import Recording
+import os 
+import random
+import string
+
+def match_recordings_and_table_filenames(recordings,filenames):
+    d = {}
+    for recording in recordings:
+        f = recording.wav_filename.split('/')[-1].replace('.wav','.Table')
+        for filename in filenames:
+            if f in filename: break
+        d[filename] =recording
+    return d
+
+def make_all_tables(pks = [106,171,348,588,589]):
+    r = Recording.objects.filter(pk__in = pks)
+    fn = glob.glob('../fa/*.Table')
+    d = match_recordings_and_table_filenames(r,fn)
+    output = []
+    for filename, recording in d.items():
+        output.append(Table(filename, recording))
+    return output
+    
 
 class Table:
     '''object to read textgrid -> table MAUS output.'''
-    def __init__(self,filename, align = None):
+    def __init__(self,filename, recording = None):
         self.filename = filename
         self._load_table()
         self.handled_align = False
-        self.handle_align(align)
+        self.handle_align(recording.align)
+        self.recording = recording
+        self._set_info()
 
     def __repr__(self):
         m = 'Table: ' + str(len(self.chunks)) + ' '
         m += str(len(self.words)) + ' '
         m += self.filename
         return m
+
+    def _set_info(self):
+        self.wav_filename = ''
+        self.directory = ''
+        if self.recording:
+            self.wav_filename = self.recording.wav_filename
+            d = self.wav_filename.split('_')[-1].split('.')[0].lower()
+            self.directory='../maus/'+d+'_r-'+str(self.recording.pk)+'/'
+            if not os.path.isdir(self.directory): os.mkdir(self.directory)
+            
         
     def _load_table(self):
         '''reads in the words and chunks in the table.
@@ -45,8 +81,8 @@ class Table:
         '''
         self.sentences = []
         if not self.align: return
-        for ocr_line in self.align.ocr_lines:
-            sentence = Sentence(ocr_line = ocr_line)
+        for i,ocr_line in enumerate(self.align.ocr_lines):
+            sentence = Sentence(ocr_line = ocr_line, index = i, table = self)
             self.sentences.append(sentence)
         
     def _match_sentences_with_table_words(self):
@@ -71,7 +107,19 @@ class Table:
         self.word_index = 0
         self._make_sentences()
         self._match_sentences_with_table_words()
-        
+
+    @property
+    def ok_sentences(self):
+        if hasattr(self,'_ok_sentences'): return self._ok_sentences
+        self._ok_sentences = [x for x in self.sentences if x.ok]
+        return self._ok_sentences
+
+    @property
+    def sentences_with_alignment(self):
+        if hasattr(self, '_annot_sentences'): return self._annot_sentences
+        s = self.ok_sentences
+        self._annot_sentences = [x for x in s if x.alignment]
+        return self._annot_sentences
 
 class Chunk:
     '''a part of the transcription (and audio) the whole audio / transcription
@@ -134,9 +182,12 @@ class Sentence:
     integer words in the sentence should be ignored because maus writes out
     numbers in words
     '''
-    def __init__(self,sentence= '', ocr_line = None, strict = True):
+    def __init__(self,sentence= '', ocr_line = None, index = None,
+        table = None, strict = True):
         self.sentence = sentence
         self.ocr_line = ocr_line
+        self.index = index
+        self.table = table
         self.strict = strict
         self.ok = True
         if ocr_line: self.sentence = ocr_line.ocr_text
@@ -151,6 +202,9 @@ class Sentence:
         if hasattr(self,'duration'):
             m += str(self.duration)
         return m
+
+    def __gt__(self,other):
+        return self.nwords > other.nwords
 
     def _handle_error(self, table, index, word):
         '''show when the sentence and maus output are not aligned.'''
@@ -193,7 +247,26 @@ class Sentence:
             self.alignment = self.ocr_line.annotations[0].alignment
         else:
             self.alignment = None
+
+    @property
+    def directory(self):
+        if not self.ocr_line:
+            print('sentence has no ocr line no directory available')
+            return
+        if not self.table:
+            print('sentence has no table no directory available')
+            return
+        return self.table.directory
         
+    @property
+    def wav_filename(self): 
+        if not self.directory: return
+        f = self.directory
+        f += get_ascii_start(self.sentence,6)
+        f += '_r-' + str(self.table.recording.pk)
+        f += '_s-' + str(self.index)
+        f += '.wav'
+        return f
 
 
 def word_is_integer(word):
@@ -223,4 +296,79 @@ def get_tier_name_dict():
         'MAU': 'phoneme'
         }
     return d
+
+def sentences_to_alignment_dict(sentences):
+    d = {}
+    for sentence in sentences:
+        a = sentence.alignment
+        if a == 'middle_mismatch': continue
+        if a not in d.keys(): d[a] = []
+        d[a].append(sentence)
+    for align in d.keys():
+        d[align] = sorted(d[align],reverse = True)
+    return d
+
+
+
+def sentence_to_audio(sentence, overwrite = False):
+    if not(sentence.wav_filename):
+        print('sentence does not have wav_filename doing nothing')
+        return
+    if os.path.isfile(sentence.wav_filename) and not overwrite:
+        print('sentence wav file already exists doing nothing')
+        return
+    cmd = 'sox ' + sentence.table.wav_filename + ' ' 
+    cmd += sentence.wav_filename + ' trim ' 
+    cmd += str(sentence.start_time)
+    cmd += ' ' + str(sentence.duration)
+    print('extracting audio')
+    print(cmd)
+    text_filename = sentence.wav_filename.replace('.wav','.txt')
+    with open(text_filename,'w') as fout:
+        fout.write(sentence.sentence)
+    os.system(cmd)
+
+        
+def get_ascii_start(sentence,n):
+    o = ''
+    for char in sentence:
+        if len(o) == n: break
+        if char not in string.ascii_letters: continue
+        o += char
+    if len(o) == 0: o = string.ascii_letters[:n]
+    return o
+
+def filter_out_old_sentences(sentences):
+    output = []
+    for sentence in sentences:
+        if os.path.isfile(sentence.wav_filename): continue
+        output.append(sentence)
+    return sentences
+    
+def select_sentences(sentences, n):
+    sentences = filter_out_old_sentences(sentences)
+    d = sentences_to_alignment_dict(sentences)
+    output = []
+    for alignment, sentences in d.items():
+        if len(sentences) < n: 
+            print(alignment,'has',len(sentences),'sentences')
+            sample_size = len(sentences)
+        else: sample_size = n
+        if sample_size == 0:
+            print('no more sentences for', alignment)
+        output.extend(random.sample(sentences,sample_size))
+    return output
+
+
+def make_audio_text_for_select_sentences(all_tables = None, n = 20):
+    if not all_tables: all_tables = make_all_tables()
+    for table in all_tables:
+        sentences = select_sentences(table.sentences_with_alignment, n = n)
+        for sentence in sentences:
+            sentence_to_audio(sentence)
+
+    
+    
+
+        
     
