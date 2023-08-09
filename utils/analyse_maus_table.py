@@ -1,11 +1,17 @@
+'''module to analyze bas webmaus output
+https://clarin.phonetik.uni-muenchen.de/BASWebServices/interface/WebMAUSBasic
+praat textgrid output is converted to table and read in with Table
+the audio & orthographic transcription was chunked and then forced aligned
+pipeline with asr / gp2 -> chunker -> maus
+'''
+
 class Table:
+    '''object to read textgrid -> table MAUS output.'''
     def __init__(self,filename, align = None):
         self.filename = filename
         self._load_table()
         self.handled_align = False
         self.handle_align(align)
-        
-        
 
     def __repr__(self):
         m = 'Table: ' + str(len(self.chunks)) + ' '
@@ -14,6 +20,12 @@ class Table:
         return m
         
     def _load_table(self):
+        '''reads in the words and chunks in the table.
+        words are only the orthographic words
+        chunks are the parts of the audio / transcription
+        it neede to be chunked because maus has a word limit of 5000
+        to speed up processing
+        '''
         self.table = load_table(self.filename)
         self.words = []
         self.chunks = []
@@ -27,6 +39,10 @@ class Table:
                 chunk.add_word(word)
 
     def _make_sentences(self):
+        '''create sentences based on the ocr_lines in the align object
+        these are the orthographic transcription lines
+        the basic unit used to evaluate the wav2vec2 output
+        '''
         self.sentences = []
         if not self.align: return
         for ocr_line in self.align.ocr_lines:
@@ -34,12 +50,23 @@ class Table:
             self.sentences.append(sentence)
         
     def _match_sentences_with_table_words(self):
+        '''the maus output is at word level collect all words that
+        match with a sentence
+        numbers are written out in the maus output
+        so ignore words in the sentences that can be converted to int
+        '''
         for i,sentence in enumerate(self.sentences):
             try:sentence.collect_words(self)
             except:
                 sentence.ok = False
 
     def handle_align(self,align):
+        '''the align object contain ocr-lines with annotations
+        evaluating the alignment of wav2vec pipeline
+        the ocr-lines are converted to sentence object and the 
+        sentence object collects the words outputed from maus with 
+        timing information.
+        '''
         self.align = align
         self.word_index = 0
         self._make_sentences()
@@ -47,6 +74,10 @@ class Table:
         
 
 class Chunk:
+    '''a part of the transcription (and audio) the whole audio / transcription
+    to speed up forced alignment processing.
+    this is part of the maus output on the TRN tier
+    '''
     def __init__(self,line):
         self.line = line
         self.type = self.line[1]
@@ -65,11 +96,14 @@ class Chunk:
         return m
 
     def add_word(self,word):
+        '''collect the words form the word tier that are part of the chunk.'''
         self.words.append(word)
 
-            
-
 class Word:
+    '''there is orthographic and phonemic tier in the maus output.
+    type indicates the type.
+    orthographic words are collected
+    '''
     def __init__(self,line, chunk = None):
         self.line = line
         self.chunk = chunk
@@ -83,6 +117,7 @@ class Word:
         return 'Word: ' + self.word + ' ' + str(round(self.duration,3)) 
 
     def equal(self,other, verbose = False):
+        '''check whether words are the same.'''
         if type(other) == type(self):
             other_word = other.word
         elif type(other) == str:
@@ -93,8 +128,12 @@ class Word:
             print('other',[other_word],'not equal:',[self.word])
         return self.word == other_word
 
-        
 class Sentence:
+    '''class to contain information of an ocr line
+    the words in the sentence are used to collect words in the maus output
+    integer words in the sentence should be ignored because maus writes out
+    numbers in words
+    '''
     def __init__(self,sentence= '', ocr_line = None, strict = True):
         self.sentence = sentence
         self.ocr_line = ocr_line
@@ -114,6 +153,7 @@ class Sentence:
         return m
 
     def _handle_error(self, table, index, word):
+        '''show when the sentence and maus output are not aligned.'''
         self.ok = False
         m = 'mismatch at table index '
         m += str(table.word_index)+' sentence ' + str(index)
@@ -124,6 +164,11 @@ class Sentence:
             print(m)
 
     def collect_words(self,table):
+        '''collect words from the table.
+        the ocr lines from the align object are processed in order
+        therefore each word in each sentence should match the next word
+        in the table
+        '''
         self.ok = True
         if self.collected_words: 
             raise ValueError('already collected words')
@@ -142,6 +187,7 @@ class Sentence:
         self.duration = round(self.end_time - self.start_time,3)
 
     def _set_alignment(self):
+        '''set the alignment of the wav2vec annotations.'''
         annotations = self.ocr_line.annotations
         if annotations:
             self.alignment = self.ocr_line.annotations[0].alignment
@@ -151,6 +197,7 @@ class Sentence:
 
 
 def word_is_integer(word):
+    '''check whether the word is a number.'''
     try: int(word)
     except: return False
     return True
