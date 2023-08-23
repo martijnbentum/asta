@@ -310,20 +310,30 @@ def sentences_to_alignment_dict(sentences):
 
 
 
-def sentence_to_audio(sentence, overwrite = False):
+def sentence_to_audio(sentence, overwrite = False, aligner = 'maus'):
     if not(sentence.wav_filename):
         print('sentence does not have wav_filename doing nothing')
         return
-    if os.path.isfile(sentence.wav_filename) and not overwrite:
+    if aligner == 'maus':
+        start_time = str(sentence.start_time)
+        duration = str(sentence.duration)
+        wav_filename = sentence.wav_filename
+        text_filename = sentence.wav_filename.replace('.wav','.txt')
+    elif aligner == 'wav2vec':
+        start_time = str(sentence.ocr_line.start_time)
+        duration = str(sentence.ocr_line.duration)
+        wav_filename = sentence.wav_filename.replace('maus','maus_wav2vec')
+        text_filename = wav_filename.replace('.wav','.txt')
+    else: raise ValueError(aligner,'unknown use maus or wav2vec')
+    if os.path.isfile(wav_filename) and not overwrite:
         print('sentence wav file already exists doing nothing')
         return
     cmd = 'sox ' + sentence.table.wav_filename + ' ' 
-    cmd += sentence.wav_filename + ' trim ' 
-    cmd += str(sentence.start_time)
-    cmd += ' ' + str(sentence.duration)
+    cmd += wav_filename + ' trim ' 
+    cmd += str(start_time)
+    cmd += ' ' + str(duration)
     print('extracting audio')
     print(cmd)
-    text_filename = sentence.wav_filename.replace('.wav','.txt')
     with open(text_filename,'w') as fout:
         fout.write(sentence.sentence)
     os.system(cmd)
@@ -338,15 +348,19 @@ def get_ascii_start(sentence,n):
     if len(o) == 0: o = string.ascii_letters[:n]
     return o
 
-def filter_out_old_sentences(sentences):
+def filter_out_old_sentences(sentences, aligner = 'maus'):
     output = []
     for sentence in sentences:
-        if os.path.isfile(sentence.wav_filename): continue
+        if aligner == 'maus': wav_filename = sentence.wav_filename
+        elif aligner == 'wav2vec': 
+            wav_filename=sentence.wav_filename.replace('maus',
+                'maus_wav2vec')
+        if os.path.isfile(wav_filename): continue
         output.append(sentence)
     return sentences
     
-def select_sentences(sentences, n):
-    sentences = filter_out_old_sentences(sentences)
+def select_sentences(sentences, n, aligner = 'maus'):
+    sentences = filter_out_old_sentences(sentences, aligner)
     d = sentences_to_alignment_dict(sentences)
     output = []
     for alignment, sentences in d.items():
@@ -359,13 +373,42 @@ def select_sentences(sentences, n):
         output.extend(random.sample(sentences,sample_size))
     return output
 
+def make_sentence_indices_dict(directory = '../maus/'):
+    fn = glob.glob(directory + '*/*.wav',recursive = True)
+    d = {}
+    for f in fn:
+        recording_pk = int(f.split('_r-')[-1].split('_s-')[0])
+        sentence_index = int(f.split('_s-')[-1].split('.')[0])
+        if recording_pk not in d.keys(): d[recording_pk] = []
+        d[recording_pk].append(sentence_index)
+    return d
 
-def make_audio_text_for_select_sentences(all_tables = None, n = 20):
+def select_sentences_with_indices(table, sentence_indices_dict):
+    pk = table.recording.pk
+    sentence_indices = sentence_indices_dict[pk]
+    output = [] 
+    for index in sentence_indices:
+        for sentence in table.sentences_with_alignment:
+            if sentence.index == index:
+                output.append(sentence)
+                break
+    return output
+                
+
+def make_audio_text_for_select_sentences(all_tables = None, n = 20, 
+    aligner = 'maus', sentence_indices_dict = None, overwrite = False):
     if not all_tables: all_tables = make_all_tables()
     for table in all_tables:
-        sentences = select_sentences(table.sentences_with_alignment, n = n)
+        if not sentence_indices_dict:
+            sentences = select_sentences(table.sentences_with_alignment, 
+            n = n,aligner=aligner)
+        else:
+            print('selecting sentences with indices dict')
+            sentences = select_sentences_with_indices(table,
+                sentence_indices_dict)
         for sentence in sentences:
-            sentence_to_audio(sentence)
+            sentence_to_audio(sentence, aligner = aligner,
+                overwrite= overwrite)
 
     
     
