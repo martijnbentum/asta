@@ -2,6 +2,13 @@ import praatio
 from praatio import textgrid
 from praatio.utilities.constants import Interval
 from praatio.data_classes import interval_tier
+import subprocess
+
+def get_recording_duration(recording):
+    x = recording
+    o = subprocess.check_output('soxi -D '+x.wav_filename, shell= True)
+    duration = float(o.decode().strip())
+    return duration
 
 
 def make_filename(recording):
@@ -12,7 +19,18 @@ def make_filename(recording):
     name = name.replace('/','--')
     return '../textgrids/' + name + '.textgrid'
 
+def find_best_aligned(ocr_lines):
+    best = ocr_lines[0]
+    for line in ocr_lines:
+        if line.align_match > best.align_match:
+            best = line
+    return best
+
+def ocr_lines_to_indices(ocr_lines):
+    return [x.ocrline_index for x in ocr_lines]
+
 def _insert_overlap(ok,overlap,after):
+    if len(overlap) == 0: return
     if len(ok) == 0: 
         before = overlap[0][0]
         if before.ocrline_index < after.ocrline_index:
@@ -20,9 +38,12 @@ def _insert_overlap(ok,overlap,after):
         else: return
     before = ok[-1]
     for lines in overlap:
-        line = lines[0]
-        if before.ocrline_index < line.ocrline_index < after.ocrline_index:
-            ok.append(line)
+        indices = ocr_lines_to_indices(ok)
+        if sum([l.ocrline_index in indices for l in lines ]) > 0:
+            continue
+        best = find_best_aligned(lines)
+        if before.ocrline_index < best.ocrline_index < after.ocrline_index:
+            ok.append(best)
 
 def _combine_text_ocr_lines(lines):
     output = lines[0]
@@ -76,6 +97,7 @@ def _set_start_end_time_not_ok(ok,not_ok, end_time):
     last_start, last_end = None, None
     for i,line in enumerate(not_ok):
         start, end = _find_times(line.ocrline_index, ok, end_time)
+        if start > end: start = end - 0.1
         print(i, 'times', line.ocrline_index, start,end,last_start,last_end)
         if i > 0 and last_start == start and last_end == end:
             print(' updating last line --:',output[-1].ocr_text )
@@ -99,7 +121,6 @@ def _fix_short_not_ok(not_ok, end_time):
             next_start = not_ok[i+1].inferred_start_time
         else: next_start = end_time
         start,end = line.inferred_start_time, line.inferred_end_time
-        print('pre --:',start,end)
         duration = end - start
         if duration >= 2: continue
         start -= 1
@@ -108,10 +129,21 @@ def _fix_short_not_ok(not_ok, end_time):
         if end > next_start: end = next_start 
         line.inferred_start_time = start
         line.inferred_end_time = end
-        print('post --:',start,end)
+
+def _clean_up_overlap(overlap):
+    output = []
+    for lines in overlap:
+        assert len(lines) > 1
+        best = find_best_aligned(lines)
+        lines.pop(lines.index(best))
+        line = _combine_text_ocr_lines(lines)
+        output.append(line)
+    overlap = output
+    return overlap
 
 def _handle_ocr_lines(recording):
-    ocr_lines = recording.align.ocr_lines
+    try:ocr_lines = recording.align.ocr_lines
+    except AttributeError: return False, False, False
     overlap, overlap_indices = get_ocr_line_overlap(ocr_lines)
     not_ok = []
     ok = []
@@ -122,8 +154,10 @@ def _handle_ocr_lines(recording):
         else:
             _insert_overlap(ok,overlap,ocr_line)
             ok.append(ocr_line)
-    not_ok = _set_start_end_time_not_ok(ok,not_ok, recording.duration)
-    _fix_short_not_ok(not_ok, recording.duration)
+    duration = get_recording_duration(recording)
+    not_ok = _set_start_end_time_not_ok(ok,not_ok, duration)
+    _fix_short_not_ok(not_ok, duration)
+    overlap = _clean_up_overlap(overlap)
     return ok, not_ok, overlap
 
 def _check_ocr_line_times_ok(ocr_line):
@@ -133,6 +167,13 @@ def _check_ocr_line_times_ok(ocr_line):
     if ocr_line.end_time == False: return False
     if ocr_line.start_time > ocr_line.end_time: return False
     return True
+
+def get_latest_end(ocr_lines):
+    end = ocr_lines[0].end_time
+    for line in ocr_lines:
+        if line.end_time > end:
+            end = line.end_time
+    return end
 
 def get_ocr_line_overlap(ocr_lines):
     overlap, overlap_indices = [], []
@@ -145,16 +186,61 @@ def get_ocr_line_overlap(ocr_lines):
         for other_line in ocr_lines[i+1:]:
             if not _check_ocr_line_times_ok(other_line): continue
             if other_line.ocrline_index in overlap_indices: continue
-            other_start, other_end = other_line.start_time, other_line.end_time
-            if other_start > end: break
+            other_start = other_line.start_time
+            other_end = other_line.end_time
+            if other_start > end: continue
             if line.ocrline_index not in overlap_indices:
                 overlap_indices.append(line.ocrline_index)
                 overlap_lines.append(line)
             overlap_lines.append(other_line)
             overlap_indices.append(other_line.ocrline_index)
+            end = get_latest_end(overlap_lines)
         if overlap_lines: overlap.append(overlap_lines)
     return overlap, overlap_indices
 
+def make_lines(ocr_lines):
+    lines = []
+    for line in ocr_lines:
+        if hasattr(line,'inferred_start_time'):
+            start, end = line.inferred_start_time, line.inferred_end_time
+        else:
+            start, end = line.start_time, line.end_time
+        label = line.ocr_text
+        lines.append([start, end, label])
+    return lines
+
+def recording_to_textgrid(recording):
+    '''create textgrid for a recording.'''
+    tg = textgrid.Textgrid()
+    name = make_filename(recording)
+    ok, not_ok, overlap = _handle_ocr_lines(recording)
+    if ok == False: return None, name
+    if len(ok) > 0: 
+        ok_lines = make_lines(ok)
+        tg.addTier( make_tier(ok_lines, 'manual transcription') )
+    if len(overlap) > 0:
+        overlap_lines = make_lines(overlap)
+        tg.addTier( make_tier(overlap_lines, 'overlapping transcription') )
+    if len(not_ok) > 0:
+        not_ok_lines = make_lines(not_ok)
+        tg.addTier( make_tier(not_ok_lines, 'not aligned') )
+    tg.save(name, 'short_textgrid', True)
+    return textgrid, name
+
+def make_tier(lines, tier_label):
+    '''create tier based on all transcription lines'''
+    intervals = []
+    for line in lines:
+        start, end, label = line
+        intervals.append( make_interval( start, end, label ) )
+    tier= interval_tier.IntervalTier(name = tier_label, entries = intervals)
+    return tier
+
+def make_interval(start,end,label):
+    return Interval(start,end,label)
+
+
+'''
 def _make_aligned_lines(recording):
     manual, asr= [],[]
     for line in recording.align.ocr_lines:
@@ -186,33 +272,4 @@ def _check_overlap(manual,asr):
             output_manual.append(line)
             output_asr.append(asr[i])
     return overlaps, output_manual,output_asr
-
-            
-            
-        
-
-
-def recording_to_textgrid(recording):
-    '''create textgrid for a recording.'''
-    tg = textgrid.Textgrid()
-    manual, asr = _make_aligned_lines(recording)
-    manual_overlap, manual, asr = _check_overlap(manual, asr)
-    tg.addTier( make_tier(manual, 'manual transcription') )
-    tg.addTier( make_tier(asr, 'wav2vec transcription') )
-    name = make_filename(recording)
-    tg.save(name, 'short_textgrid', True)
-    return textgrid
-
-def make_tier(lines, tier_label):
-    '''create tier based on all transcription lines'''
-    intervals = []
-    for line in lines:
-        start, end, label = line
-        intervals.append( make_interval( start, end, label ) )
-    tier = interval_tier.IntervalTier(name = tier_label, entries = intervals)
-    return tier
-
-def make_interval(start,end,label):
-    return Interval(start,end,label)
-
-
+'''
